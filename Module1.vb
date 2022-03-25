@@ -4,9 +4,9 @@ Imports System.Convert
 
 Module Module1
     Sub Main()
-        Dim grid As grid = LoadGrid("blank.txt")
-        If grid.Height > 0 Then
-            DisplayGrid(grid)
+        Dim maze As maze = LoadGrid("blank.txt")
+        If maze.Size.x > 0 Then
+            DisplayGrid(maze)
         End If
         ReadLine()
     End Sub
@@ -17,7 +17,7 @@ Module Module1
 
     End Sub
 
-    Private Function LoadGrid(fileName As String) As grid
+    Private Function LoadGrid(fileName As String) As maze
         Dim lines() As String = File.ReadAllLines(fileName)
         Dim input As String = lines(0).Remove(0, 8)
         Dim tempHeight, tempWidth As Integer
@@ -26,7 +26,7 @@ Module Module1
         Else
             WriteLine("Error has occured when loading grid")
             WriteLine("Height is not valid")
-            Return New grid()
+            Return New maze()
         End If
         input = lines(1).Remove(0, 7)
         If IsNumeric(input) AndAlso input > 0 AndAlso input Mod 1 = 0 Then
@@ -34,16 +34,16 @@ Module Module1
         Else
             WriteLine("Error has occured when loading grid")
             WriteLine("Width is not valid")
-            Return New grid()
+            Return New maze()
         End If
-        Dim grid = New grid(tempWidth, tempHeight)
-        For y = 0 To grid.Height - 1
+        Dim grid = New maze(tempWidth, tempHeight)
+        For y = 0 To grid.Size.y - 1
             For x = 0 To lines(y + 2).Length - 1
                 Dim character As Char = lines(y + 2)(x)
                 If Not Char.IsNumber(character) OrElse ToInt16(character.ToString()) > 1 Then
                     WriteLine("Error has occured when loading grid")
                     WriteLine("Grid cell at position (" & x & ", " & y & ") is not valid")
-                    Return New grid()
+                    Return New maze()
                 End If
                 grid.Cells(x, y) = ToInt16(character.ToString())
             Next
@@ -51,13 +51,13 @@ Module Module1
         Return grid
     End Function
 
-    Private Sub SaveGrid(grid As grid, fileName As String)
+    Private Sub SaveGrid(maze As maze, fileName As String)
         FileOpen(0, fileName, OpenMode.Output)
-        FileSystem.WriteLine(0, "Height: " & grid.Height)
-        FileSystem.WriteLine(0, "Width: " & grid.Width)
-        For y = 0 To grid.Height
-            For x = 0 To grid.Width
-                FileSystem.Write(0, grid.Cells(x, y))
+        FileSystem.WriteLine(0, "Height: " & maze.Size.y)
+        FileSystem.WriteLine(0, "Width: " & maze.Size.x)
+        For y = 0 To maze.Size.y
+            For x = 0 To maze.Size.x
+                FileSystem.Write(0, maze.Cells(x, y))
             Next
             FileSystem.WriteLine(0, "")
         Next
@@ -65,15 +65,15 @@ Module Module1
     End Sub
 
     Private Structure room
-        Dim pos As vec
-        Dim size As vec
+        Dim Pos As vec
+        Dim Size As vec
         Sub New(position As vec, roomSize As vec)
-            pos = position
-            size = roomSize
+            Pos = position
+            Size = roomSize
         End Sub
     End Structure
     Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer)
-        Dim grid = New grid(mazeSize.x, mazeSize.y)
+        Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x, mazeSize.y) As Integer
         Dim currentRegion As Integer = -1
@@ -94,30 +94,35 @@ Module Module1
                                             GetRnd(0, ((mazeSize.y - roomSize.y) / 2) * 2 + 1))
             Dim newRoom = New room(newRoomPos, roomSize)
             'checks if it overlaps an existing room
-            If roomList.Any(Function(r) r.pos.x <= newRoomPos.x + roomSize.x AndAlso
-                                        r.pos.y <= newRoomPos.y + roomSize.y) Then Continue For
+            If roomList.Any(Function(r) r.Pos.x <= newRoomPos.x + roomSize.x AndAlso
+                                        r.Pos.y <= newRoomPos.y + roomSize.y) Then Continue For
             roomList.Add(newRoom)
             'start region
             currentRegion += 1
-
+            'carving
+            For x = 0 To newRoom.Size.x
+                For y = 0 to newRoom.Size.y
+                    regionAtPos(x, y) = currentRegion
+                Next
+            Next
         Next
 
-        Return grid
+        Return maze
     End Function
 
-    Private Sub DisplayGrid(grid As grid)
-        For x = 0 To grid.Width + 1
+    Private Sub DisplayGrid(maze As maze)
+        For x = 0 To maze.Size.x + 1
             Write("██")
         Next
         WriteLine("")
-        For y = 0 To grid.Height - 1
+        For y = 0 To maze.Size.y - 1
             Write("██")
-            For x = 0 To grid.Width - 1
-                Write(ToChar(grid.Cells(x, y)))
+            For x = 0 To maze.Size.x - 1
+                Write(ToChar(maze.Cells(x, y)))
             Next
             WriteLine("██")
         Next
-        For x = 0 To grid.Width + 1
+        For x = 0 To maze.Size.x + 1
             Write("██")
         Next
         WriteLine("")
@@ -133,14 +138,12 @@ Module Module1
         Return ""
     End Function
 
-    Private Structure grid
-        Dim Width As Integer
-        Dim Height As Integer
+    Private Structure maze
+        Dim Size As vec
         Dim Cells(,) As Integer
-        Sub New(x As Integer, y As Integer)
-            ReDim Cells(x, y)
-            Width = x
-            Height = y
+        Sub New(mazeSize As vec)
+            ReDim Cells(mazeSize.x, mazeSize.y)
+            Size = mazeSize
         End Sub
     End Structure
 
