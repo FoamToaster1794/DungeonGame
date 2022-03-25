@@ -72,7 +72,7 @@ Module Module1
             size = roomSize
         End Sub
     End Structure
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries, extraConnectorChance, roomExtraSize As Integer)
+    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer)
         Dim grid = New grid(mazeSize.x, mazeSize.y)
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x, mazeSize.y) As Integer
@@ -82,7 +82,7 @@ Module Module1
         For z = 0 To noOfRoomTries - 1
             Dim size As Integer = GetRnd(1, 3 + roomExtraSize) * 2 + 1
             Dim rectangularity As Integer = GetRnd(0, 1 + size / 2) * 2
-            Dim roomSize As vec = New vec(size, size)
+            Dim roomSize = New vec(size, size)
             
             If(GetRnd(1, 2) = 2)
                 roomSize.x += rectangularity
@@ -90,8 +90,8 @@ Module Module1
                 roomSize.y += rectangularity
             End If
             
-            Dim newRoomPos As vec = New vec(GetRnd(0, ((mazeSize.x - roomSize.x)/2)*2 + 1),
-                                            GetRnd(0, ((mazeSize.y - roomSize.y)/2)*2 + 1))
+            Dim newRoomPos As vec = New vec(GetRnd(0, ((mazeSize.x - roomSize.x) / 2) * 2 + 1),
+                                            GetRnd(0, ((mazeSize.y - roomSize.y) / 2) * 2 + 1))
             Dim newRoom As room = New room(newRoomPos, roomSize)
             'checks if it overlaps an existing room
             If roomList.Any(Function(r) r.pos.x <= newRoomPos.x + roomSize.x AndAlso
