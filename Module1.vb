@@ -3,9 +3,6 @@ Imports System.IO
 Imports System.Convert
 
 Module Module1
-
-    Dim johnson As Boolean
-
     Sub Main()
         Dim grid As grid = LoadGrid("blank.txt")
         If grid.Height > 0 Then
