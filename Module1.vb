@@ -3,6 +3,7 @@ Imports System.IO
 Imports System.Convert
 
 Module Module1
+    Dim thisBetterWork As String
     Sub Main()
         Dim grid as grid = LoadGrid("blank.txt")
         If grid.Height > 0
@@ -90,9 +91,9 @@ Module Module1
                 roomSize.y += rectangularity
             End If
             
-            Dim newRoomPos As vec = New vec(GetRnd(0, ((mazeSize.x - roomSize.x) / 2) * 2 + 1),
+            Dim newRoomPos = New vec(GetRnd(0, ((mazeSize.x - roomSize.x) / 2) * 2 + 1),
                                             GetRnd(0, ((mazeSize.y - roomSize.y) / 2) * 2 + 1))
-            Dim newRoom As room = New room(newRoomPos, roomSize)
+            Dim newRoom = New room(newRoomPos, roomSize)
             'checks if it overlaps an existing room
             If roomList.Any(Function(r) r.pos.x <= newRoomPos.x + roomSize.x AndAlso
                                         r.pos.y <= newRoomPos.y + roomSize.y) Then Continue For
@@ -146,7 +147,7 @@ Module Module1
     
     Private Structure vec
         Dim x, y As Integer
-        Sub New(xPos, yPos As Integer)
+        Sub New(xPos As Integer, yPos As Integer)
             x = xPos
             y = yPos
         End Sub
