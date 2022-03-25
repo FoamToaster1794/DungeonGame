@@ -3,7 +3,7 @@ Imports System.IO
 Imports System.Convert
 
 Module Module1
-    Dim thisBetterWork As String
+
     Sub Main()
         Dim grid as grid = LoadGrid("blank.txt")
         If grid.Height > 0
