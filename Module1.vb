@@ -17,11 +17,40 @@ Module Module1
         ReadLine()
     End Sub
 
-    Private Sub MainMenu()
+    Private Sub MainMenu(ByRef position As Integer)
         Clear()
         WriteLine("")
-
+        Dim keypressed As Integer
+        Dim topposition As Integer = 0
+        Dim bottomspot As Integer = 5
+        position = 0
+        Do
+            Console.Clear()
+            WriteLine(" Opt1")
+            WriteLine(" Opt2")
+            WriteLine(" Opt3")
+            WriteLine(" Opt4")
+            WriteLine(" Opt5")
+            WriteLine(" Exit")
+            SetCursorPosition(0, position)
+            Write(">")
+            keypressed = ReadKey(True).Key
+            Select Case keypressed
+                Case Is = ConsoleKey.DownArrow
+                    If position < bottomspot Then
+                        position = position + 1
+                    End If
+                Case Is = ConsoleKey.UpArrow
+                    If position > topposition Then
+                        position = position - 1
+                    End If
+            End Select
+        Loop Until keypressed = ConsoleKey.Enter
+        If position = 5 Then
+            End
+        End If
     End Sub
+
 
     Private Function LoadGrid(fileName As String) As maze
         Dim lines() As String = File.ReadAllLines(fileName)
@@ -164,7 +193,12 @@ Module Module1
         
         'connect regions
 
-        Return maze
+        Dim connectorregions = New Dictionary(Of vec, LinkedList(Of Integer))
+        'tuans space ill get it eventually 
+
+
+
+
     End Function
     
     <Extension>
