@@ -1,12 +1,18 @@
 Imports System.Console
 Imports System.IO
 Imports System.Convert
+Imports System.Runtime.CompilerServices
 
 Module Module1
     Sub Main()
         Dim maze As maze = LoadGrid("blank.txt")
+        Randomize()
+        Dim generatedMaze As maze = GenerateMaze(New vec(33, 33), 50, 10, 0, 90)
+        DisplayMaze(generatedMaze)
+        WriteLine()
+        ReadLine()
         If maze.Size.x > 0 Then
-            DisplayGrid(maze)
+            DisplayMaze(maze)
         End If
         ReadLine()
     End Sub
@@ -36,8 +42,8 @@ Module Module1
             WriteLine("Width is not valid")
             Return New maze()
         End If
-        Dim grid = New maze(tempWidth, tempHeight)
-        For y = 0 To grid.Size.y - 1
+        Dim maze = New maze(New vec(tempWidth, tempHeight))
+        For y = 0 To maze.Size.y - 1
             For x = 0 To lines(y + 2).Length - 1
                 Dim character As Char = lines(y + 2)(x)
                 If Not Char.IsNumber(character) OrElse ToInt16(character.ToString()) > 1 Then
@@ -45,10 +51,10 @@ Module Module1
                     WriteLine("Grid cell at position (" & x & ", " & y & ") is not valid")
                     Return New maze()
                 End If
-                grid.Cells(x, y) = ToInt16(character.ToString())
+                maze.Cells(x, y) = ToInt16(character.ToString())
             Next
         Next
-        Return grid
+        Return maze
     End Function
 
     Private Sub SaveGrid(maze As maze, fileName As String)
@@ -72,10 +78,11 @@ Module Module1
             Size = roomSize
         End Sub
     End Structure
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer)
+    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer, windingPercent As Integer)
+        Randomize()
         Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
-        Dim regionAtPos(mazeSize.x, mazeSize.y) As Integer
+        Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
         Dim currentRegion As Integer = -1
 
         'Add rooms
@@ -92,25 +99,99 @@ Module Module1
 
             Dim newRoomPos = New vec(GetRnd(0, ((mazeSize.x - roomSize.x) / 2) * 2 + 1),
                                             GetRnd(0, ((mazeSize.y - roomSize.y) / 2) * 2 + 1))
-            Dim newRoom = New room(newRoomPos, roomSize)
             'checks if it overlaps an existing room
-            If roomList.Any(Function(r) r.Pos.x <= newRoomPos.x + roomSize.x AndAlso
-                                        r.Pos.y <= newRoomPos.y + roomSize.y) Then Continue For
+            If roomList.Any(Function(r) newRoomPos.x <= r.Pos.x + r.Size.x AndAlso
+                                        newRoomPos.x + roomSize.x >= r.Pos.x AndAlso
+                                        newRoomPos.y <= r.Pos.y + r.Size.y AndAlso
+                                        newRoomPos.y + roomSize.y >= r.Pos.y) Then Continue For
+            Dim newRoom = New room(newRoomPos, roomSize)
             roomList.Add(newRoom)
             'start region
             currentRegion += 1
             'carving
-            For x = 0 To newRoom.Size.x
-                For y = 0 to newRoom.Size.y
-                    regionAtPos(x, y) = currentRegion
+            For x = 0 To newRoom.Size.x - 1
+                For y = 0 to newRoom.Size.y - 1
+                    Dim pos = New vec(newRoomPos.x + x, newRoomPos.y + y)
+                    pos.Carve(currentRegion, regionAtPos, maze)
                 Next
             Next
         Next
+        DisplayMaze(maze)
+        WriteLine("")
+        
+        'maze generation
+        For y = 1 To mazeSize.y - 1 Step 2
+            For x = 1 To mazeSize.x - 1 Step 2
+                Dim pos = New vec(x, y)
+                If maze.Cells(x, y) <> 0 Then Continue For
+                
+                'grow maze
+                Dim cells = New List(Of vec)
+                Dim lastDir As Integer = -1
+                'start region
+                currentRegion += 1
+                'carve
+                pos.Carve(currentRegion, regionAtPos, maze)
+                
+                cells.Add(pos)
+                While cells.Count > 0
+                    Dim cell = cells.Last()
+                    Dim unmadeCells() As Integer = 'expression to check if cell can be carved
+                            Enumerable.Range(0, 4).Where(Function(dir) _ 
+                                cell.AddDirection(dir).x < mazeSize.x AndAlso cell.AddDirection(dir).x > - 1 AndAlso
+                                cell.AddDirection(dir).y < mazeSize.y AndAlso cell.AddDirection(dir).y > - 1 AndAlso
+                                maze.Cells(cell.AddDirection(dir).x, cell.AddDirection(dir).y) = 0).ToArray()
+                    If unmadeCells.Length > 0
+                        'applying windiness
+                        Dim dir As Integer
+                        If unmadeCells.Contains(lastDir) AndAlso GetRnd(1, 100) > windingPercent
+                            dir = lastDir
+                        Else
+                            dir = unmadeCells(GetRnd(0, unmadeCells.Length - 1))
+                        End If
+                        'carving
+                        cell.AddDirection(dir).Carve(currentRegion, regionAtPos, maze)
+                        cell.AddDirection(dir, 2).Carve(currentRegion, regionAtPos, maze)
+                        cells.Add(cell.AddDirection(dir, 2))
+                        lastDir = dir 
+                    Else 
+                        cells.RemoveAt(cells.Count - 1)
+                        lastDir = -1
+                    End If
+                End While
+            Next
+        Next
+        
+        'connect regions
 
         Return maze
     End Function
+    
+    <Extension>
+    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze)
+        If pos.x < maze.Size.x AndAlso pos.x > -1 AndAlso pos.y < maze.Size.y AndAlso pos.y > - 1
+            regionAtPos(pos.x, pos.y) = currentRegion
+            maze.Cells(pos.x, pos.y) = 1
+        End If
+    End Sub
+    
+    <Extension>
+    Private Function AddDirection(pos As vec, direction As Integer, Optional amount As Integer = 1) As vec
+        Select Case direction
+            Case 0
+                Return New vec(pos.x, pos.y - amount)
+            Case 1
+                Return New vec(pos.x + amount, pos.y)
+            Case 2
+                Return New vec(pos.x, pos.y + amount)
+            Case 3
+                Return New vec(pos.x - amount, pos.y)
+        End Select
+        WriteLine("Function add direction has received an invalid direction")
+        Return pos
+    End Function
 
-    Private Sub DisplayGrid(maze As maze)
+    Private Sub DisplayMaze(maze As maze)
         For x = 0 To maze.Size.x + 1
             Write("██")
         Next
@@ -118,7 +199,7 @@ Module Module1
         For y = 0 To maze.Size.y - 1
             Write("██")
             For x = 0 To maze.Size.x - 1
-                Write(ToChar(maze.Cells(x, y)))
+                Write(maze.Cells(x, y).ToChar())
             Next
             WriteLine("██")
         Next
@@ -128,21 +209,22 @@ Module Module1
         WriteLine("")
     End Sub
 
+    <Extension>
     Private Function ToChar(num As Integer) As String
         Select Case num
             Case 0
-                Return "  "
-            Case 1
                 Return "██"
+            Case 1
+                Return "  "
         End Select
         Return ""
     End Function
 
     Private Structure maze
         Dim Size As vec
-        Dim Cells(,) As Integer
+        Dim Cells(,) As Integer '0 is wall 1 is floor
         Sub New(mazeSize As vec)
-            ReDim Cells(mazeSize.x, mazeSize.y)
+            ReDim Cells(mazeSize.x - 1, mazeSize.y - 1)
             Size = mazeSize
         End Sub
     End Structure
@@ -156,7 +238,6 @@ Module Module1
     End Structure
 
     Private Function GetRnd(min, max) 'its inclusive on both ends
-        Randomize()
         Return CInt(Math.Floor((max - min + 1) * Rnd())) + min
     End Function
 End Module
