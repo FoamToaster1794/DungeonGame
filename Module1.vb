@@ -6,12 +6,12 @@ Imports System.Runtime.InteropServices
 
 Module Module1
     Sub Main()
-        SetupConsole(100, 10)
-        WindowWidth = 150
-        WindowHeight = 75
+        SetupConsole(100, 5)
+        WindowWidth = 810
+        WindowHeight = 175
         Dim maze As maze = LoadGrid("blank.txt")
         Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(71, 71), 70, 10, -1, 10)
+        Dim generatedMaze As maze = GenerateMaze(New vec(401, 171), 200, 10, -1, 20)
         'DisplayMaze(generatedMaze)
         WriteLine()
         ReadLine()
@@ -189,9 +189,12 @@ Module Module1
                         Dim cell1 As vec = cell.AddDirection(dir)
                         Dim cell2 As vec = cell.AddDirection(dir, 2)
                         cell1.Carve(currentRegion, regionAtPos, maze, True)
-                        Threading.Thread.Sleep(2)
                         cell2.Carve(currentRegion, regionAtPos, maze, True)
-                        Threading.Thread.Sleep(2)
+                        Dim sleepTime As Short = 0
+                        If cells.Count Mod 15 = 0
+                            sleepTime = 1
+                        End If
+                        Threading.Thread.Sleep(sleepTime)
                         cells.Add(cell2)
                         lastDir = dir
                     Else
