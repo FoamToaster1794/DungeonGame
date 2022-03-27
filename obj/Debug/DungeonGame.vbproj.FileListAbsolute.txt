@@ -6,3 +6,11 @@ D:\Repos\Cloud\RiderProjects\DungeonGame\obj\Debug\DungeonGame.vbproj.CoreCompil
 D:\Repos\Cloud\RiderProjects\DungeonGame\obj\Debug\DungeonGame.exe
 D:\Repos\Cloud\RiderProjects\DungeonGame\obj\Debug\DungeonGame.xml
 D:\Repos\Cloud\RiderProjects\DungeonGame\obj\Debug\DungeonGame.pdb
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\bin\Debug\DungeonGame.exe
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\bin\Debug\DungeonGame.pdb
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\bin\Debug\DungeonGame.xml
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\obj\Debug\DungeonGame.vbproj.AssemblyReference.cache
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\obj\Debug\DungeonGame.vbproj.CoreCompileInputs.cache
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\obj\Debug\DungeonGame.exe
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\obj\Debug\DungeonGame.xml
+C:\Users\trfos\Repos\Cloud\Rider Projects\DungeonGame\obj\Debug\DungeonGame.pdb

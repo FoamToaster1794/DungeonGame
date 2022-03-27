@@ -2,12 +2,16 @@ Imports System.Console
 Imports System.IO
 Imports System.Convert
 Imports System.Runtime.CompilerServices
+Imports System.Runtime.InteropServices
 
 Module Module1
     Sub Main()
+        SetupConsole(100, 10)
+        WindowWidth = 150
+        WindowHeight = 75
         Dim maze As maze = LoadGrid("blank.txt")
         Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(33, 33), 20, 10, -1, 70)
+        Dim generatedMaze As maze = GenerateMaze(New vec(71, 71), 70, 10, -1, 10)
         'DisplayMaze(generatedMaze)
         WriteLine()
         ReadLine()
@@ -107,18 +111,18 @@ Module Module1
             Size = roomSize
         End Sub
     End Structure
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer, windingPercent As Integer)
+    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte)
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
         Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
-        Dim currentRegion As Integer = -1
+        Dim currentRegion As Short = -1
 
         'Add rooms
         For z = 0 To noOfRoomTries - 1
-            Dim size As Integer = GetRnd(1, 3 + roomExtraSize) * 2 + 1
+            Dim size As Short = GetRnd(1, 3 + roomExtraSize) * 2 + 1
             Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
             Dim roomSize = New vec(size, size)
 
@@ -147,6 +151,9 @@ Module Module1
                 Next
             Next
         Next
+        
+        SetCursorPosition(0, 0)
+        DisplayMaze(maze)
         
         'maze generation
         For y = 0 To mazeSize.y Step 2
@@ -179,13 +186,14 @@ Module Module1
                             dir = unmadeCells(GetRnd(0, unmadeCells.Length - 1))
                         End If
                         'carving
-                        cell.AddDirection(dir).Carve(currentRegion, regionAtPos, maze)
-                        cell.AddDirection(dir, 2).Carve(currentRegion, regionAtPos, maze)
-                        cells.Add(cell.AddDirection(dir, 2))
+                        Dim cell1 As vec = cell.AddDirection(dir)
+                        Dim cell2 As vec = cell.AddDirection(dir, 2)
+                        cell1.Carve(currentRegion, regionAtPos, maze, True)
+                        Threading.Thread.Sleep(2)
+                        cell2.Carve(currentRegion, regionAtPos, maze, True)
+                        Threading.Thread.Sleep(2)
+                        cells.Add(cell2)
                         lastDir = dir
-                        SetCursorPosition(0, 0)
-                        DisplayMaze(maze)
-                        Threading.Thread.Sleep(30)
                     Else
                         cells.RemoveAt(cells.Count - 1)
                         lastDir = -1
@@ -204,10 +212,14 @@ Module Module1
     End Function
     
     <Extension>
-    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze)
+    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze, Optional displayChanges As Boolean = False)
         If pos.x < maze.Size.x AndAlso pos.x > -1 AndAlso pos.y < maze.Size.y AndAlso pos.y > - 1
             regionAtPos(pos.x, pos.y) = currentRegion
             maze.Cells(pos.x, pos.y) = 1
+            If displayChanges
+                SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
+                Write("  ")
+            End If
         End If
     End Sub
     
@@ -276,4 +288,58 @@ Module Module1
     Private Function GetRnd(min As Integer, max As Integer) 'its inclusive on both ends
         Return CInt(Math.Floor((max - min + 1) * Rnd())) + min
     End Function
+    
+    'stuff for changing font size
+    
+    Private Const STD_OUTPUT_HANDLE = -11
+    Private Sub SetupConsole(fontWeight As Short, fontSize As Short, Optional fontName As String = "Consolas")
+        Dim hHandle As IntPtr = GetStdHandle(CType(STD_OUTPUT_HANDLE, IntPtr))
+        If (hHandle <> CType(- 1, IntPtr)) Then
+            Dim fontInfoex = New CONSOLE_FONT_INFOEX()
+            fontInfoex.cbSize = CUInt(Marshal.SizeOf(fontInfoex))
+            GetCurrentConsoleFontEx(hHandle, False, fontInfoex)
+            fontInfoex.FontWeight = fontWeight
+            fontInfoex.FaceName = fontName
+            fontInfoex.dwFontSize = New Coord(fontSize, fontSize)
+            SetCurrentConsoleFontEx(hHandle, False, fontInfoex)
+        End If
+    End Sub
+    
+    <DllImport("Kernel32.dll", SetLastError := True)>
+    Private Function SetCurrentConsoleFontEx(hConsoleOutput As IntPtr, bMaximumWindow As Boolean,
+                                            ByRef lpConsoleCurrentFontEx As CONSOLE_FONT_INFOEX) As Boolean
+    End Function
+
+    <DllImport("Kernel32.dll", SetLastError := True)>
+    Private Function GetCurrentConsoleFontEx(hConsoleOutput As IntPtr, bMaximumWindow As Boolean,
+                                            ByRef lpConsoleCurrentFontEx As CONSOLE_FONT_INFOEX) As Boolean
+    End Function
+
+    Private Const LfFacesize = 32
+
+    <StructLayout(LayoutKind.Sequential, CharSet := CharSet.Unicode)>
+    Private Structure CONSOLE_FONT_INFOEX
+        Public cbSize As UInteger
+        Private ReadOnly nFont As Integer
+        Public dwFontSize As Coord
+        Private ReadOnly FontFamily As UInteger
+        Public FontWeight As UInteger
+        <MarshalAs(UnmanagedType.ByValTStr, SizeConst := LfFacesize)> Public FaceName As String
+    End Structure
+
+    <StructLayout(LayoutKind.Sequential)>
+    Private Structure Coord
+        Private ReadOnly X As Short
+        Private ReadOnly Y As Short
+
+        Public Sub New(x As Short, y As Short)
+            Me.X = x
+            Me.Y = y
+        End Sub
+    End Structure
+
+    <DllImport("Kernel32.dll", SetLastError := True)>
+    Private Function GetStdHandle(nStdHandle As IntPtr) As IntPtr
+    End Function
+
 End Module
