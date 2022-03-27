@@ -7,8 +7,8 @@ Module Module1
     Sub Main()
         Dim maze As maze = LoadGrid("blank.txt")
         Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(33, 33), 50, 10, 0, 90)
-        DisplayMaze(generatedMaze)
+        Dim generatedMaze As maze = GenerateMaze(New vec(33, 33), 20, 10, -1, 70)
+        'DisplayMaze(generatedMaze)
         WriteLine()
         ReadLine()
         If maze.Size.x > 0 Then
@@ -21,11 +21,11 @@ Module Module1
         Clear()
         WriteLine("")
         Dim keypressed As Integer
-        Dim topposition As Integer = 0
-        Dim bottomspot As Integer = 5
+        Dim topposition = 0
+        Dim bottomspot = 5
         position = 0
         Do
-            Console.Clear()
+            Clear()
             WriteLine(" Opt1")
             WriteLine(" Opt2")
             WriteLine(" Opt3")
@@ -109,6 +109,8 @@ Module Module1
     End Structure
     Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Integer, extraConnectorChance As Integer, roomExtraSize As Integer, windingPercent As Integer)
         Randomize()
+        WriteLine("press enter to see maze generation")
+        ReadLine()
         Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
@@ -117,7 +119,7 @@ Module Module1
         'Add rooms
         For z = 0 To noOfRoomTries - 1
             Dim size As Integer = GetRnd(1, 3 + roomExtraSize) * 2 + 1
-            Dim rectangularity As Integer = GetRnd(0, 1 + size / 2) * 2
+            Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
             Dim roomSize = New vec(size, size)
 
             If (GetRnd(1, 2) = 2) Then
@@ -126,8 +128,8 @@ Module Module1
                 roomSize.y += rectangularity
             End If
 
-            Dim newRoomPos = New vec(GetRnd(0, ((mazeSize.x - roomSize.x) / 2) * 2 + 1),
-                                            GetRnd(0, ((mazeSize.y - roomSize.y) / 2) * 2 + 1))
+            Dim newRoomPos = New vec(GetRnd(0, (mazeSize.x - roomSize.x) \ 2) * 2,
+                                            GetRnd(0, (mazeSize.y - roomSize.y) \ 2) * 2)
             'checks if it overlaps an existing room
             If roomList.Any(Function(r) newRoomPos.x <= r.Pos.x + r.Size.x AndAlso
                                         newRoomPos.x + roomSize.x >= r.Pos.x AndAlso
@@ -145,12 +147,10 @@ Module Module1
                 Next
             Next
         Next
-        DisplayMaze(maze)
-        WriteLine("")
         
         'maze generation
-        For y = 1 To mazeSize.y - 1 Step 2
-            For x = 1 To mazeSize.x - 1 Step 2
+        For y = 0 To mazeSize.y Step 2
+            For x = 0 To mazeSize.x Step 2
                 Dim pos = New vec(x, y)
                 If maze.Cells(x, y) <> 0 Then Continue For
                 
@@ -167,9 +167,9 @@ Module Module1
                     Dim cell = cells.Last()
                     Dim unmadeCells() As Integer = 'expression to check if cell can be carved
                             Enumerable.Range(0, 4).Where(Function(dir) _ 
-                                cell.AddDirection(dir).x < mazeSize.x AndAlso cell.AddDirection(dir).x > - 1 AndAlso
-                                cell.AddDirection(dir).y < mazeSize.y AndAlso cell.AddDirection(dir).y > - 1 AndAlso
-                                maze.Cells(cell.AddDirection(dir).x, cell.AddDirection(dir).y) = 0).ToArray()
+                                cell.AddDirection(dir, 2).x < mazeSize.x AndAlso cell.AddDirection(dir, 2).x > - 1 AndAlso
+                                cell.AddDirection(dir, 2).y < mazeSize.y AndAlso cell.AddDirection(dir, 2).y > - 1 AndAlso
+                                maze.Cells(cell.AddDirection(dir, 2).x, cell.AddDirection(dir, 2).y) = 0).ToArray()
                     If unmadeCells.Length > 0
                         'applying windiness
                         Dim dir As Integer
@@ -182,8 +182,11 @@ Module Module1
                         cell.AddDirection(dir).Carve(currentRegion, regionAtPos, maze)
                         cell.AddDirection(dir, 2).Carve(currentRegion, regionAtPos, maze)
                         cells.Add(cell.AddDirection(dir, 2))
-                        lastDir = dir 
-                    Else 
+                        lastDir = dir
+                        SetCursorPosition(0, 0)
+                        DisplayMaze(maze)
+                        Threading.Thread.Sleep(30)
+                    Else
                         cells.RemoveAt(cells.Count - 1)
                         lastDir = -1
                     End If
@@ -197,8 +200,7 @@ Module Module1
         'tuans space ill get it eventually 
 
 
-
-
+        Return maze
     End Function
     
     <Extension>
@@ -271,7 +273,7 @@ Module Module1
         End Sub
     End Structure
 
-    Private Function GetRnd(min, max) 'its inclusive on both ends
+    Private Function GetRnd(min As Integer, max As Integer) 'its inclusive on both ends
         Return CInt(Math.Floor((max - min + 1) * Rnd())) + min
     End Function
 End Module
