@@ -191,11 +191,11 @@ Module Module1
                         Dim cell2 As vec = cell.AddDirection(dir, 2)
                         cell1.Carve(currentRegion, regionAtPos, maze, True)
                         cell2.Carve(currentRegion, regionAtPos, maze, True)
-                        Dim sleepTime As Short = 0
-                        If cells.Count Mod 15 = 0
-                            sleepTime = 1
-                        End If
-                        Threading.Thread.Sleep(sleepTime)
+'                        Dim sleepTime As Short = 0
+'                        If cells.Count Mod 70 = 0
+'                            sleepTime = 1
+'                        End If
+'                        Threading.Thread.Sleep(sleepTime)
                         cells.Add(cell2)
                         lastDir = dir
                     Else
@@ -215,31 +215,32 @@ Module Module1
         
         'remove dead ends
         Dim done = False
-        Dim removedCount = 0
+        'Dim removedCount = 0
         While Not done
             done = True
             For y = 0 To mazeSize.y - 1
                 For x = 0 To mazeSize.x - 1
                     If maze.Cells(x, y) = 0 Then Continue For
-                    Dim pos = New vec(x, y)
-                    Dim exits As Byte
-                    exits = Enumerable.Range(0, 4).Count(Function (dir) _
-                                                            pos.AddDirection(dir).x < mazeSize.x AndAlso
-                                                            pos.AddDirection(dir).x > - 1 AndAlso
-                                                            pos.AddDirection(dir).y < mazeSize.y AndAlso
-                                                            pos.AddDirection(dir).y > - 1 AndAlso 
-                                                            maze.Cells(pos.AddDirection(dir).x, pos.AddDirection(dir).y) = 1)
+                    
+                    Dim exits As Byte = 0
+                    For z = 0 To 3
+                        Dim addPos = New vec(x, y).AddDirection(z)
+                        If addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso
+                           addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
+                            exits += 1
+                        End If
+                    Next
                     If exits > 1 Then Continue For
                     done = False
                     maze.Cells(x, y) = 0
-                    removedCount += 1
-                    SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
+                    'removedCount += 1
+                    SetCursorPosition((x + 1) * 2, y + 1)
                     Write("██")
-                    Dim sleepTime As Short = 0
-                    If removedCount Mod 20 = 0
-                        sleepTime = 1
-                    End If
-                    Threading.Thread.Sleep(sleepTime)
+'                    Dim sleepTime As Short = 0
+'                    If removedCount Mod 70 = 0
+'                        sleepTime = 1
+'                    End If
+'                    Threading.Thread.Sleep(sleepTime)
                 Next
             Next
         End While
