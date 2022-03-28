@@ -7,17 +7,18 @@ Imports System.Runtime.InteropServices
 Module Module1
     Sub Main()
         SetupConsole(100, 5)
-        WindowWidth = 810
-        WindowHeight = 175
-        Dim maze As maze = LoadGrid("blank.txt")
+        WindowWidth = 630
+        WindowHeight = 165
         Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(401, 171), 200, 10, -1, 20)
-        'DisplayMaze(generatedMaze)
-        WriteLine()
-        ReadLine()
-        If maze.Size.x > 0 Then
-            DisplayMaze(maze)
-        End If
+        Dim generatedMaze As maze = GenerateMaze(New vec(311, 161), 200, 10, -1, 0)
+        Clear()
+        DisplayMaze(generatedMaze)
+'        WriteLine()
+'        ReadLine()
+'        Dim maze As maze = LoadGrid("blank.txt")
+'        If maze.Size.x > 0 Then
+'            DisplayMaze(maze)
+'        End If
         ReadLine()
     End Sub
 
@@ -209,8 +210,39 @@ Module Module1
 
         Dim connectorregions = New Dictionary(Of vec, LinkedList(Of Integer))
         'tuans space ill get it eventually 
-
-
+        
+        ReadLine()
+        
+        'remove dead ends
+        Dim done = False
+        Dim removedCount = 0
+        While Not done
+            done = True
+            For y = 0 To mazeSize.y - 1
+                For x = 0 To mazeSize.x - 1
+                    If maze.Cells(x, y) = 0 Then Continue For
+                    Dim pos = New vec(x, y)
+                    Dim exits As Byte
+                    exits = Enumerable.Range(0, 4).Count(Function (dir) _
+                                                            pos.AddDirection(dir).x < mazeSize.x AndAlso
+                                                            pos.AddDirection(dir).x > - 1 AndAlso
+                                                            pos.AddDirection(dir).y < mazeSize.y AndAlso
+                                                            pos.AddDirection(dir).y > - 1 AndAlso 
+                                                            maze.Cells(pos.AddDirection(dir).x, pos.AddDirection(dir).y) = 1)
+                    If exits > 1 Then Continue For
+                    done = False
+                    maze.Cells(x, y) = 0
+                    removedCount += 1
+                    SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
+                    Write("██")
+                    Dim sleepTime As Short = 0
+                    If removedCount Mod 20 = 0
+                        sleepTime = 1
+                    End If
+                    Threading.Thread.Sleep(sleepTime)
+                Next
+            Next
+        End While
         Return maze
     End Function
     
