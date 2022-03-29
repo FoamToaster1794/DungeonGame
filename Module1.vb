@@ -7,25 +7,32 @@ Imports System.Text
 
 Module Module1
     Const johnson = "fileNames.txt"
+    Const wall = "██"
+    Const floor = "  "
+    Const wallSize = 2
     Sub Main()
         Dim mainMenuChoice As Integer
-        MainMenu(mainMenuChoice)
-        WriteLine(mainMenuChoice)
-        ReadLine()
-'        SetupConsole(100, 1)
-'        WindowWidth = 2510
-'        WindowHeight = 670
-'        Randomize()
-'        Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 600, 10, 1, 50)
-'        Clear()
-'        DisplayMaze(generatedMaze)
-'        WriteLine()
-'        ReadLine()
-'        Dim maze As maze = LoadGrid("blank.txt")
-'        If maze.Size.x > 0 Then
-'            DisplayMaze(maze)
-'        End If
-        ReadLine()
+        Do 
+            SetCursorPosition(0, 0)
+            MainMenu(mainMenuChoice)
+            Select Case mainMenuChoice
+                Case 0
+                    LoadMaze()
+'                    Dim maze As maze = LoadGrid("blank.txt")
+'                    If maze.Size.x > 0 Then
+'                         DisplayMaze(maze)
+'                    End If
+                Case 1
+                    SetupConsole(100, 1)
+                    WindowWidth = 2510
+                    WindowHeight = 670
+                    Randomize()
+                    Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 1000, 10, 2, 50)
+                    SetCursorPosition(0, 0)
+                    DisplayMaze(generatedMaze)
+                    
+            End Select
+        Loop Until mainMenuChoice = 3
     End Sub
     
     
@@ -58,30 +65,31 @@ Module Module1
                     End If
             End Select
         Loop Until keypressed = ConsoleKey.Enter
-        If position = 3 Then
-            End
-        End If
         Clear()
     End Sub
     
     Private Sub LoadMaze()
         If Not File.Exists(johnson)
-            WriteLine()
+            WriteLine("No files to load")
+            ReadLine()
+            Return
         End If
-        Dim fileNames() As String = File.ReadLines(johnson)
+        Dim fileNames() As String = File.ReadAllLines(johnson)
         If fileNames.Length = 0
-            
+            WriteLine("No files to load")
+            ReadLine()
+            Return
         End If
         
         'menu code
+        Dim fileCount As Integer = fileNames.Length
         Dim keypressed As Integer
         Dim topposition = 0
-        Dim bottomspot = 3
+        Dim bottomspot = fileCount - 1
         Dim position = 0
-        WriteLine(" Load maze")
-        WriteLine(" Generate new maze")
-        WriteLine(" Change generation parameters")
-        WriteLine(" Exit")
+        For Each fileName As String In fileNames
+            WriteLine(" " & fileName)
+        Next
         Do
             SetCursorPosition(0, position)
             Write(">")
@@ -102,9 +110,14 @@ Module Module1
             End Select
         Loop Until keypressed = ConsoleKey.Enter
         Clear()
+        
+        Dim mazeName As String = fileNames(position)
+        Dim maze As maze = LoadMazeFromFile(mazeName)
+        DisplayMaze(maze)
+        ReadLine()
     End Sub
 
-    Private Function LoadGrid(fileName As String) As maze
+    Private Function LoadMazeFromFile(fileName As String) As maze
         Dim lines() As String = File.ReadAllLines(fileName)
         Dim input As String = lines(0).Remove(0, 8)
         Dim tempHeight, tempWidth As Integer
@@ -159,7 +172,7 @@ Module Module1
             Size = roomSize
         End Sub
     End Structure
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte)
+    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte) As maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -204,12 +217,14 @@ Module Module1
         DisplayMaze(maze)
         ReadLine()
         
+        Dim count = 0
         'maze generation
         For y = 0 To mazeSize.y Step 2
             For x = 0 To mazeSize.x Step 2
                 Dim pos = New vec(x, y)
                 If maze.Cells(x, y) <> 0 Then Continue For
                 
+                count += 1
                 'grow maze
                 Dim cells = New List(Of vec)
                 Dim lastDir As Integer = -1
@@ -221,29 +236,31 @@ Module Module1
                 cells.Add(pos)
                 While cells.Count > 0
                     Dim cell = cells.Last()
-                    Dim unmadeCells() As Integer = 'expression to check if cell can be carved
-                            Enumerable.Range(0, 4).Where(Function(dir) _ 
-                                cell.AddDirection(dir, 2).x < mazeSize.x AndAlso cell.AddDirection(dir, 2).x > - 1 AndAlso
-                                cell.AddDirection(dir, 2).y < mazeSize.y AndAlso cell.AddDirection(dir, 2).y > - 1 AndAlso
-                                maze.Cells(cell.AddDirection(dir, 2).x, cell.AddDirection(dir, 2).y) = 0).ToArray()
-                    If unmadeCells.Length > 0
+                    Dim unmadeCells = New List(Of Integer)
+                    For z = 0 To 3
+                        Dim cellAdded As vec = cell.AddDirection(z, 2)
+                        If cellAdded.y < mazeSize.y AndAlso cellAdded.y > -1 AndAlso 
+                           cellAdded.x < mazeSize.x AndAlso cellAdded.x > - 1 AndAlso 
+                           maze.Cells(cellAdded.x, cellAdded.y) = 0
+                            unmadeCells.Add(z)
+                        End If
+                    Next
+                    If unmadeCells.Count > 0
                         'applying windiness
                         Dim dir As Integer
                         If unmadeCells.Contains(lastDir) AndAlso GetRnd(1, 100) > windingPercent
                             dir = lastDir
                         Else
-                            dir = unmadeCells(GetRnd(0, unmadeCells.Length - 1))
+                            dir = unmadeCells(GetRnd(0, unmadeCells.Count - 1))
                         End If
                         'carving
                         Dim cell1 As vec = cell.AddDirection(dir)
                         Dim cell2 As vec = cell.AddDirection(dir, 2)
                         cell1.Carve(currentRegion, regionAtPos, maze, True)
                         cell2.Carve(currentRegion, regionAtPos, maze, True)
-'                        Dim sleepTime As Short = 0
 '                        If cells.Count Mod 70 = 0
-'                            sleepTime = 1
+'                            Threading.Thread.Sleep(1)
 '                        End If
-'                        Threading.Thread.Sleep(sleepTime)
                         cells.Add(cell2)
                         lastDir = dir
                     Else
@@ -253,6 +270,7 @@ Module Module1
                 End While
             Next
         Next
+        MsgBox(count)
         
         'connect regions
 
@@ -262,33 +280,6 @@ Module Module1
         ReadLine()
         
         'remove dead ends
-        
-        'Dim done = False
-        'Dim removedCount = 0
-'        While Not done
-'            done = True
-'            For y = 0 To mazeSize.y - 1
-'                For x = 0 To mazeSize.x - 1
-'                    If maze.Cells(x, y) = 0 Then Continue For
-'                    Dim pos = New vec(x, y)
-'                    Dim exits As Byte = 0
-'                    For z = 0 To 3
-'                        Dim addPos = pos.AddDirection(z)
-'                        If addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso
-'                           addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
-'                            exits += 1
-'                        End If
-'                    Next
-'                    If exits > 1 Then Continue For
-'                    deadEndList.Add(pos)
-'                    done = False
-'                    maze.Cells(x, y) = 0
-'                    'removedCount += 1
-'                    SetCursorPosition((x + 1) * 2, y + 1)
-'                    Write("██")
-'                Next
-'            Next
-'        End While
         
         For y = 0 To mazeSize.y - 1
             For x = 0 To mazeSize.x - 1
@@ -307,15 +298,12 @@ Module Module1
                     If exits.Count <> 1 Then Exit While
                     maze.Cells(pos.x, pos.y) = 0
                     SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
-                    Write("██")
+                    Write(wall)
                     pos = pos.AddDirection(exits.First())
                     'removedCount += 1
-'                    Dim sleepTime As Short = 0
-'                    If removedCount Mod 70 = 0
-'                        sleepTime = 1
+'                    If cells.Count Mod 70 = 0
+'                        Threading.Thread.Sleep(1)
 '                    End If
-'                    Threading.Thread.Sleep(sleepTime)
-                    'Threading.Thread.Sleep(100)
                 End While
             Next
         Next
@@ -330,7 +318,7 @@ Module Module1
             maze.Cells(pos.x, pos.y) = 1
             If displayChanges
                 SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
-                Write("  ")
+                Write(floor)
             End If
         End If
     End Sub
@@ -354,25 +342,25 @@ Module Module1
     Private Sub DisplayMaze(maze As maze)
         Dim line = New StringBuilder
         'For x = 0 To maze.Size.x + 1
-            'Write("██")
+            'Write(wall)
         'Next
-        line.Append("█", maze.Size.x * 2 + 4)
+        line.Append("█", (maze.Size.x + 2) * wallSize)
         'WriteLine("")
         line.AppendLine()
         For y = 0 To maze.Size.y - 1
-            'Write("██")
-            line.Append("██")
+            'Write(wall)
+            line.Append(wall)
             For x = 0 To maze.Size.x - 1
                 'Write(maze.Cells(x, y).ToChar())
                 line.Append(maze.Cells(x, y).ToChar())
             Next
-            'WriteLine("██")
-            line.AppendLine("██")
+            'WriteLine(wall)
+            line.AppendLine(wall)
         Next
         'For x = 0 To maze.Size.x + 1
-            'Write("██")
+            'Write(wall)
         'Next
-        line.Append("█", maze.Size.x * 2 + 4)
+        line.Append("█", (maze.Size.x + 2) * wallSize)
         'WriteLine("")
         line.AppendLine()
         
@@ -383,9 +371,9 @@ Module Module1
     Private Function ToChar(num As Integer) As String
         Select Case num
             Case 0
-                Return "██"
+                Return wall
             Case 1
-                Return "  "
+                Return floor
         End Select
         Return ""
     End Function
@@ -414,7 +402,7 @@ Module Module1
     'stuff for changing font size
     
     Private Const STD_OUTPUT_HANDLE = -11
-    Private Sub SetupConsole(fontWeight As Short, fontSize As Short, Optional fontName As String = "Consolas")
+    Private Sub SetupConsole(fontWeight As Short, fontSize As Short, Optional fontName As String = "Raster Fonts")
         Dim hHandle As IntPtr = GetStdHandle(CType(STD_OUTPUT_HANDLE, IntPtr))
         If (hHandle <> CType(- 1, IntPtr)) Then
             Dim fontInfoex = New CONSOLE_FONT_INFOEX()
