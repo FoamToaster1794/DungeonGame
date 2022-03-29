@@ -6,14 +6,19 @@ Imports System.Runtime.InteropServices
 Imports System.Text
 
 Module Module1
+    Const johnson = "fileNames.txt"
     Sub Main()
-        SetupConsole(100, 1)
-        WindowWidth = 2510
-        WindowHeight = 670
-        Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 600, 10, 1, 50)
-        Clear()
-        DisplayMaze(generatedMaze)
+        Dim mainMenuChoice As Integer
+        MainMenu(mainMenuChoice)
+        WriteLine(mainMenuChoice)
+        ReadLine()
+'        SetupConsole(100, 1)
+'        WindowWidth = 2510
+'        WindowHeight = 670
+'        Randomize()
+'        Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 600, 10, 1, 50)
+'        Clear()
+'        DisplayMaze(generatedMaze)
 '        WriteLine()
 '        ReadLine()
 '        Dim maze As maze = LoadGrid("blank.txt")
@@ -22,41 +27,77 @@ Module Module1
 '        End If
         ReadLine()
     End Sub
+    
+    
 
     Private Sub MainMenu(ByRef position As Integer)
-        Clear()
-        WriteLine("")
         Dim keypressed As Integer
         Dim topposition = 0
-        Dim bottomspot = 5
+        Dim bottomspot = 3
         position = 0
+        WriteLine(" Load maze")
+        WriteLine(" Generate new maze")
+        WriteLine(" Change generation parameters")
+        WriteLine(" Exit")
         Do
-            Clear()
-            WriteLine(" Opt1")
-            WriteLine(" Opt2")
-            WriteLine(" Opt3")
-            WriteLine(" Opt4")
-            WriteLine(" Opt5")
-            WriteLine(" Exit")
             SetCursorPosition(0, position)
             Write(">")
             keypressed = ReadKey(True).Key
             Select Case keypressed
                 Case Is = ConsoleKey.DownArrow
+                    CursorLeft -= 1
+                    Write(" ")
                     If position < bottomspot Then
-                        position = position + 1
+                        position += 1
                     End If
                 Case Is = ConsoleKey.UpArrow
+                    CursorLeft -= 1
+                    Write(" ")
                     If position > topposition Then
-                        position = position - 1
+                        position -= 1
                     End If
             End Select
         Loop Until keypressed = ConsoleKey.Enter
-        If position = 5 Then
+        If position = 3 Then
             End
         End If
+        Clear()
     End Sub
-
+    
+    Private Sub LoadMaze()
+        Dim fileNames() As String = File.ReadLines(johnson)
+        
+        
+        'menu code
+        Dim keypressed As Integer
+        Dim topposition = 0
+        Dim bottomspot = 3
+        Dim position = 0
+        WriteLine(" Load maze")
+        WriteLine(" Generate new maze")
+        WriteLine(" Change generation parameters")
+        WriteLine(" Exit")
+        Do
+            SetCursorPosition(0, position)
+            Write(">")
+            keypressed = ReadKey(True).Key
+            Select Case keypressed
+                Case Is = ConsoleKey.DownArrow
+                    CursorLeft -= 1
+                    Write(" ")
+                    If position < bottomspot Then
+                        position += 1
+                    End If
+                Case Is = ConsoleKey.UpArrow
+                    CursorLeft -= 1
+                    Write(" ")
+                    If position > topposition Then
+                        position -= 1
+                    End If
+            End Select
+        Loop Until keypressed = ConsoleKey.Enter
+        Clear()
+    End Sub
 
     Private Function LoadGrid(fileName As String) As maze
         Dim lines() As String = File.ReadAllLines(fileName)
