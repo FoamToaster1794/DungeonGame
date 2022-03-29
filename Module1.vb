@@ -3,14 +3,15 @@ Imports System.IO
 Imports System.Convert
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
+Imports System.Text
 
 Module Module1
     Sub Main()
-        SetupConsole(100, 5)
-        WindowWidth = 630
-        WindowHeight = 165
+        SetupConsole(100, 1)
+        WindowWidth = 2510
+        WindowHeight = 670
         Randomize()
-        Dim generatedMaze As maze = GenerateMaze(New vec(311, 161), 200, 10, -1, 0)
+        Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 600, 10, 1, 50)
         Clear()
         DisplayMaze(generatedMaze)
 '        WriteLine()
@@ -155,6 +156,7 @@ Module Module1
         
         SetCursorPosition(0, 0)
         DisplayMaze(maze)
+        ReadLine()
         
         'maze generation
         For y = 0 To mazeSize.y Step 2
@@ -214,36 +216,64 @@ Module Module1
         ReadLine()
         
         'remove dead ends
-        Dim done = False
+        
+        'Dim done = False
         'Dim removedCount = 0
-        While Not done
-            done = True
-            For y = 0 To mazeSize.y - 1
-                For x = 0 To mazeSize.x - 1
-                    If maze.Cells(x, y) = 0 Then Continue For
-                    
-                    Dim exits As Byte = 0
+'        While Not done
+'            done = True
+'            For y = 0 To mazeSize.y - 1
+'                For x = 0 To mazeSize.x - 1
+'                    If maze.Cells(x, y) = 0 Then Continue For
+'                    Dim pos = New vec(x, y)
+'                    Dim exits As Byte = 0
+'                    For z = 0 To 3
+'                        Dim addPos = pos.AddDirection(z)
+'                        If addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso
+'                           addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
+'                            exits += 1
+'                        End If
+'                    Next
+'                    If exits > 1 Then Continue For
+'                    deadEndList.Add(pos)
+'                    done = False
+'                    maze.Cells(x, y) = 0
+'                    'removedCount += 1
+'                    SetCursorPosition((x + 1) * 2, y + 1)
+'                    Write("██")
+'                Next
+'            Next
+'        End While
+        
+        For y = 0 To mazeSize.y - 1
+            For x = 0 To mazeSize.x - 1
+                If maze.Cells(x, y) = 0 Then Continue For
+                Dim pos = New vec(x, y)
+                Dim exits = New List(Of Byte)
+                While True
+                    exits.Clear()
                     For z = 0 To 3
-                        Dim addPos = New vec(x, y).AddDirection(z)
-                        If addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso
-                           addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
-                            exits += 1
+                        Dim addPos = pos.AddDirection(z)
+                        If addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso
+                           addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
+                            exits.Add(z)
                         End If
                     Next
-                    If exits > 1 Then Continue For
-                    done = False
-                    maze.Cells(x, y) = 0
-                    'removedCount += 1
-                    SetCursorPosition((x + 1) * 2, y + 1)
+                    If exits.Count <> 1 Then Exit While
+                    maze.Cells(pos.x, pos.y) = 0
+                    SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
                     Write("██")
+                    pos = pos.AddDirection(exits.First())
+                    'removedCount += 1
 '                    Dim sleepTime As Short = 0
 '                    If removedCount Mod 70 = 0
 '                        sleepTime = 1
 '                    End If
 '                    Threading.Thread.Sleep(sleepTime)
-                Next
+                    'Threading.Thread.Sleep(100)
+                End While
             Next
-        End While
+        Next
+        
         Return maze
     End Function
     
@@ -276,21 +306,31 @@ Module Module1
     End Function
 
     Private Sub DisplayMaze(maze As maze)
-        For x = 0 To maze.Size.x + 1
-            Write("██")
-        Next
-        WriteLine("")
+        Dim line = New StringBuilder
+        'For x = 0 To maze.Size.x + 1
+            'Write("██")
+        'Next
+        line.Append("█", maze.Size.x * 2 + 4)
+        'WriteLine("")
+        line.AppendLine()
         For y = 0 To maze.Size.y - 1
-            Write("██")
+            'Write("██")
+            line.Append("██")
             For x = 0 To maze.Size.x - 1
-                Write(maze.Cells(x, y).ToChar())
+                'Write(maze.Cells(x, y).ToChar())
+                line.Append(maze.Cells(x, y).ToChar())
             Next
-            WriteLine("██")
+            'WriteLine("██")
+            line.AppendLine("██")
         Next
-        For x = 0 To maze.Size.x + 1
-            Write("██")
-        Next
-        WriteLine("")
+        'For x = 0 To maze.Size.x + 1
+            'Write("██")
+        'Next
+        line.Append("█", maze.Size.x * 2 + 4)
+        'WriteLine("")
+        line.AppendLine()
+        
+        WriteLine(line)
     End Sub
 
     <Extension>
