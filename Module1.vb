@@ -10,27 +10,37 @@ Module Module1
     Const wall = "██"
     Const floor = "  "
     Const wallSize = 2
+    Const initialFontWeight = 400
+    Const initialFontSize = 42
+    Const initialFontName = "Lucida Sans Typewriter"
     Sub Main()
         Dim mainMenuChoice As Integer
+        Dim currentMaze As maze
+        
+        MaximiseConsole()
         Do 
-            SetCursorPosition(0, 0)
+            Clear()
+            SetupConsole(initialFontWeight, initialFontSize, initialFontName)
             MainMenu(mainMenuChoice)
             Select Case mainMenuChoice
                 Case 0
-                    LoadMaze()
+                    LoadMaze(currentMaze)
 '                    Dim maze As maze = LoadGrid("blank.txt")
 '                    If maze.Size.x > 0 Then
 '                         DisplayMaze(maze)
 '                    End If
                 Case 1
-                    SetupConsole(100, 1)
-                    WindowWidth = 2510
-                    WindowHeight = 670
+                    GenerateMenu()
+                    SetupConsole(100, 1, "Consolas")
+'                    WindowWidth = 1910 'for 1080p: 1910
+'                    WindowHeight = 330 'for 1080p: 330
                     Randomize()
-                    Dim generatedMaze As maze = GenerateMaze(New vec(1251, 627), 1000, 10, 2, 50)
+                    '                                   max for 1080p:943,  325
+                    Dim generatedMaze As maze = GenerateMaze(New vec(943, 325), 400, 10, 0, 50, True)
                     SetCursorPosition(0, 0)
                     DisplayMaze(generatedMaze)
-                    
+                    ReadLine()
+                    Clear()
             End Select
         Loop Until mainMenuChoice = 3
     End Sub
@@ -68,7 +78,7 @@ Module Module1
         Clear()
     End Sub
     
-    Private Sub LoadMaze()
+    Private Sub LoadMaze(ByRef maze As maze)
         If Not File.Exists(johnson)
             WriteLine("No files to load")
             ReadLine()
@@ -85,8 +95,9 @@ Module Module1
         Dim fileCount As Integer = fileNames.Length
         Dim keypressed As Integer
         Dim topposition = 0
-        Dim bottomspot = fileCount - 1
+        Dim bottomspot = fileCount
         Dim position = 0
+        WriteLine(" Back to main menu")
         For Each fileName As String In fileNames
             WriteLine(" " & fileName)
         Next
@@ -109,12 +120,12 @@ Module Module1
                     End If
             End Select
         Loop Until keypressed = ConsoleKey.Enter
+        If position = 0
+            Return
+        End If
         Clear()
-        
         Dim mazeName As String = fileNames(position)
-        Dim maze As maze = LoadMazeFromFile(mazeName)
-        DisplayMaze(maze)
-        ReadLine()
+        maze = LoadMazeFromFile(mazeName)
     End Sub
 
     Private Function LoadMazeFromFile(fileName As String) As maze
@@ -163,16 +174,12 @@ Module Module1
         Next
         FileClose(0)
     End Sub
-
-    Private Structure room
-        Dim Pos As vec
-        Dim Size As vec
-        Sub New(position As vec, roomSize As vec)
-            Pos = position
-            Size = roomSize
-        End Sub
-    End Structure
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte) As maze
+    
+    Private Sub GenerateMenu()
+        
+    End Sub
+    
+    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte, isSlowedGen As Boolean) As maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -180,8 +187,20 @@ Module Module1
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
         Dim currentRegion As Short = -1
-
+        
+        DisplayMaze(maze)
+        
         'Add rooms
+        
+        Dim modCount = 1
+        Dim sleepTime = 0
+        If isSlowedGen
+            modCount = ((noOfRoomTries * 5000) / (mazeSize.x)) / 700 + 1
+            sleepTime = 100 \ noOfRoomTries
+        End If
+        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        
+        Dim cellCount = 0
         For z = 0 To noOfRoomTries - 1
             Dim size As Short = GetRnd(1, 3 + roomExtraSize) * 2 + 1
             Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
@@ -208,7 +227,11 @@ Module Module1
             For x = 0 To newRoom.Size.x - 1
                 For y = 0 to newRoom.Size.y - 1
                     Dim pos = New vec(newRoomPos.x + x, newRoomPos.y + y)
-                    pos.Carve(currentRegion, regionAtPos, maze)
+                    pos.Carve(currentRegion, regionAtPos, maze, True)
+                    cellCount += 1
+                    If modCount > 0 AndAlso cellCount Mod modCount = 0
+                        Threading.Thread.Sleep(sleepTime)
+                    End If
                 Next
             Next
         Next
@@ -217,14 +240,23 @@ Module Module1
         DisplayMaze(maze)
         ReadLine()
         
-        Dim count = 0
         'maze generation
+        
+        modCount = 1
+        sleepTime = 0
+        If isSlowedGen
+            modCount = (mazeSize.x*mazeSize.y*1.001)/1000 + 1
+            sleepTime = 1000/(mazeSize.x + mazeSize.y)
+        End If
+        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        
+        Dim regionCount = 0
         For y = 0 To mazeSize.y Step 2
             For x = 0 To mazeSize.x Step 2
                 Dim pos = New vec(x, y)
                 If maze.Cells(x, y) <> 0 Then Continue For
                 
-                count += 1
+                regionCount += 1
                 'grow maze
                 Dim cells = New List(Of vec)
                 Dim lastDir As Integer = -1
@@ -258,11 +290,11 @@ Module Module1
                         Dim cell2 As vec = cell.AddDirection(dir, 2)
                         cell1.Carve(currentRegion, regionAtPos, maze, True)
                         cell2.Carve(currentRegion, regionAtPos, maze, True)
-'                        If cells.Count Mod 70 = 0
-'                            Threading.Thread.Sleep(1)
-'                        End If
                         cells.Add(cell2)
                         lastDir = dir
+                        If modCount > 0 AndAlso Cells.Count Mod modCount = 0
+                            Threading.Thread.Sleep(sleepTime)
+                        End If
                     Else
                         cells.RemoveAt(cells.Count - 1)
                         lastDir = -1
@@ -270,7 +302,7 @@ Module Module1
                 End While
             Next
         Next
-        MsgBox(count)
+        MsgBox("region count: " & regionCount)
         
         'connect regions
 
@@ -281,6 +313,15 @@ Module Module1
         
         'remove dead ends
         
+        modCount = 1
+        sleepTime = 0
+        If isSlowedGen
+            modCount = (mazeSize.x*mazeSize.y)/1000 + 1
+            sleepTime = 1000\(mazeSize.x + mazeSize.y)
+        End If
+        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        
+        Dim removedCount = 0
         For y = 0 To mazeSize.y - 1
             For x = 0 To mazeSize.x - 1
                 If maze.Cells(x, y) = 0 Then Continue For
@@ -295,15 +336,16 @@ Module Module1
                             exits.Add(z)
                         End If
                     Next
-                    If exits.Count <> 1 Then Exit While
+                    If exits.Count > 1 Then Exit While
                     maze.Cells(pos.x, pos.y) = 0
                     SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
                     Write(wall)
+                    If exits.Count = 0 Then Exit While
                     pos = pos.AddDirection(exits.First())
-                    'removedCount += 1
-'                    If cells.Count Mod 70 = 0
-'                        Threading.Thread.Sleep(1)
-'                    End If
+                    removedCount += 1
+                    If modCount > 0 AndAlso removedCount Mod modCount = 0
+                        Threading.Thread.Sleep(sleepTime)
+                    End If
                 End While
             Next
         Next
@@ -386,6 +428,16 @@ Module Module1
             Size = mazeSize
         End Sub
     End Structure
+    
+    Private Structure room
+        Dim Pos As vec
+        Dim Size As vec
+
+        Sub New(position As vec, roomSize As vec)
+            Pos = position
+            Size = roomSize
+        End Sub
+    End Structure
 
     Private Structure vec
         Dim x, y As Integer
@@ -413,6 +465,10 @@ Module Module1
             fontInfoex.dwFontSize = New Coord(fontSize, fontSize)
             SetCurrentConsoleFontEx(hHandle, False, fontInfoex)
         End If
+        
+        SetWindowSize(LargestWindowWidth, LargestWindowHeight)
+        SetBufferSize(WindowWidth, WindowHeight)
+        MsgBox("window width: " & WindowWidth & " window height: " & WindowHeight)
     End Sub
     
     <DllImport("Kernel32.dll", SetLastError := True)>
@@ -450,6 +506,24 @@ Module Module1
 
     <DllImport("Kernel32.dll", SetLastError := True)>
     Private Function GetStdHandle(nStdHandle As IntPtr) As IntPtr
+    End Function
+    
+    'stuff to maximise window at runtime
+    
+    Private Sub MaximiseConsole()
+        ShowWindow(GetConsoleWindow(), SW_SHOWMAXIMIZED)
+        
+        SetBufferSize(WindowWidth, WindowHeight)
+    End Sub
+    
+    <DllImport("kernel32.dll", ExactSpelling := True)>
+    Private Function GetConsoleWindow() As IntPtr
+    End Function
+
+    Private Const SW_SHOWMAXIMIZED As Integer = 3
+
+    <DllImport("user32.dll", CharSet := CharSet.Auto, SetLastError := True)>
+    Private Function ShowWindow(hWnd As IntPtr, nCmdShow As Integer) As Boolean
     End Function
 
 End Module
