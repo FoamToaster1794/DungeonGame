@@ -65,8 +65,13 @@ Module Module1
     End Sub
     
     Private Sub LoadMaze()
+        If Not File.Exists(johnson)
+            WriteLine()
+        End If
         Dim fileNames() As String = File.ReadLines(johnson)
-        
+        If fileNames.Length = 0
+            
+        End If
         
         'menu code
         Dim keypressed As Integer
