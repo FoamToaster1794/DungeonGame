@@ -17,10 +17,19 @@ Module Module1
         Dim mainMenuChoice As Integer
         Dim currentMaze As maze
         
+        Dim mazeSize As vec
+        Dim roomTryCount As Short
+        Dim extraConnectorChance As Byte
+        Dim roomExtraSize As Short
+        Dim windingPercent As Byte
+        Dim showMazeGen As Boolean
+        
+        
         MaximiseConsole()
         Do 
             Clear()
             SetupConsole(initialFontWeight, initialFontSize, initialFontName)
+            Randomize()
             MainMenu(mainMenuChoice)
             Select Case mainMenuChoice
                 Case 0
@@ -30,17 +39,18 @@ Module Module1
 '                         DisplayMaze(maze)
 '                    End If
                 Case 1
-                    GenerateMenu()
-                    SetupConsole(100, 1, "Consolas")
+                    Dim fontSize As Byte = 1 'CalculateFontSize(mazeSize)
+                    SetupConsole(100, fontSize, "Consolas")
 '                    WindowWidth = 1910 'for 1080p: 1910
 '                    WindowHeight = 330 'for 1080p: 330
-                    Randomize()
-                    '                                   max for 1080p:943,  325
-                    Dim generatedMaze As maze = GenerateMaze(New vec(943, 325), 400, 10, 0, 50, True)
+                    '                                     max for 1080p:943,  325
+                    Dim generatedMaze As maze = GenerateMaze(New vec(943, 325), 600, 10, 0, 50, True)
                     SetCursorPosition(0, 0)
                     DisplayMaze(generatedMaze)
                     ReadLine()
                     Clear()
+                Case 2
+                    GenerateMenu(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
             End Select
         Loop Until mainMenuChoice = 3
     End Sub
@@ -175,11 +185,77 @@ Module Module1
         FileClose(0)
     End Sub
     
-    Private Sub GenerateMenu()
-        
+    Private Sub GenerateMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte, ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
+        Dim keypressed As Integer
+        Dim topposition = 1
+        Dim bottomspot = 7
+        Dim position = 0
+        WriteLine("Generation Settings (think of these like difficulty settings)")
+        WriteLine("Maze width (odd integer 21-325: ")
+        WriteLine("Maze height (odd integer 21-943: ")
+        WriteLine("No. of attempts to place a room (0-1000 recommended): ")
+        WriteLine("Percentage chance for extra room connections (0-100): ")
+        WriteLine("Extra size for rooms (any integer): ")
+        WriteLine("Percentage chance for paths to wind (0-100): ")
+        WriteLine("Whether the generation is instant (True-False): ")
+        WriteLine(" Save settings")
+        Do
+            Dim left As Byte
+            Select Case position
+                Case 0
+                    left = 31
+                Case 1
+                    left = 32
+                Case 2
+                    left = 53
+                Case 3
+                    left = 53
+                Case 4
+                    left = 35
+                Case 5
+                    left = 44
+                Case 6
+                    left = 47
+                Case 7
+                    left = 0
+            End Select
+            SetCursorPosition(left, position + topposition)
+            Write(">")
+            If position = 7
+                keypressed = ReadKey(True).Key
+            Else
+                keypressed = ReadKey().Key
+            End If
+            Select Case keypressed
+                Case Is = ConsoleKey.DownArrow
+                    CursorLeft -= (2 - position \ 7)
+                    Write(" ")
+                    If position < bottomspot Then
+                        position += 1
+                    End If
+                Case Is = ConsoleKey.UpArrow
+                    CursorLeft -= (2 - position \ 7)
+                    Write(" ")
+                    If position >= topposition Then
+                        position -= 1
+                    End If
+            End Select
+        Loop Until keypressed = ConsoleKey.Enter
+        If position = 0
+            Return
+        End If
     End Sub
     
-    Private Function GenerateMaze(mazeSize As vec, noOfRoomTries As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte, isSlowedGen As Boolean) As maze
+    Private Function CalculateFontSize(mazeSize As vec) As Byte
+        Dim fontSize As Byte
+        fontSize = 17
+        Do
+            fontSize -= 1
+        Loop Until fontSize * 2 * (mazeSize.y + 2) < 1070 AndAlso fontSize * 2 * (mazeSize.x + 2) < 1910
+        Return fontSize
+    End Function
+    
+    Private Function GenerateMaze(mazeSize As vec, roomTryCount As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -194,14 +270,14 @@ Module Module1
         
         Dim modCount = 1
         Dim sleepTime = 0
-        If isSlowedGen
-            modCount = ((noOfRoomTries * 5000) / (mazeSize.x)) / 700 + 1
-            sleepTime = 100 \ noOfRoomTries
+        If showMazeGen
+            modCount = ((roomTryCount ^ 2) * 30) \ 700 + 1
+            sleepTime = 100 \ roomTryCount
         End If
         MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim cellCount = 0
-        For z = 0 To noOfRoomTries - 1
+        For z = 0 To roomTryCount - 1
             Dim size As Short = GetRnd(1, 3 + roomExtraSize) * 2 + 1
             Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
             Dim roomSize = New vec(size, size)
@@ -244,9 +320,9 @@ Module Module1
         
         modCount = 1
         sleepTime = 0
-        If isSlowedGen
-            modCount = (mazeSize.x*mazeSize.y*1.001)/1000 + 1
-            sleepTime = 1000/(mazeSize.x + mazeSize.y)
+        If showMazeGen
+            modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
+            sleepTime = 900 \ (mazeSize.x + mazeSize.y)
         End If
         MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
@@ -315,9 +391,9 @@ Module Module1
         
         modCount = 1
         sleepTime = 0
-        If isSlowedGen
-            modCount = (mazeSize.x*mazeSize.y)/1000 + 1
-            sleepTime = 1000\(mazeSize.x + mazeSize.y)
+        If showMazeGen
+            modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
+            sleepTime = 900 \ (mazeSize.x + mazeSize.y)
         End If
         MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
@@ -468,7 +544,7 @@ Module Module1
         
         SetWindowSize(LargestWindowWidth, LargestWindowHeight)
         SetBufferSize(WindowWidth, WindowHeight)
-        MsgBox("window width: " & WindowWidth & " window height: " & WindowHeight)
+        'MsgBox("window width: " & WindowWidth & " window height: " & WindowHeight)
     End Sub
     
     <DllImport("Kernel32.dll", SetLastError := True)>
