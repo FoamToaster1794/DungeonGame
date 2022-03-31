@@ -17,12 +17,13 @@ Module Module1
         Dim mainMenuChoice As Integer
         Dim currentMaze As maze
         
-        Dim mazeSize As vec
-        Dim roomTryCount As Short
-        Dim extraConnectorChance As Byte
-        Dim roomExtraSize As Short
-        Dim windingPercent As Byte
-        Dim showMazeGen As Boolean
+        '          max for 1080p:943,  325
+        Dim mazeSize = New vec(101, 101)
+        Dim roomTryCount As Short = 32767
+        Dim extraConnectorChance As Byte = 20
+        Dim roomExtraSize As Short = 0
+        Dim windingPercent As Byte = 60
+        Dim showMazeGen As Boolean = True
         
         
         MaximiseConsole()
@@ -39,12 +40,11 @@ Module Module1
 '                         DisplayMaze(maze)
 '                    End If
                 Case 1
-                    Dim fontSize As Byte = 1 'CalculateFontSize(mazeSize)
+                    Dim fontSize As Byte = CalculateFontSize(mazeSize)
+                    MsgBox(fontSize)
                     SetupConsole(100, fontSize, "Consolas")
-'                    WindowWidth = 1910 'for 1080p: 1910
-'                    WindowHeight = 330 'for 1080p: 330
-                    '                                     max for 1080p:943,  325
-                    Dim generatedMaze As maze = GenerateMaze(New vec(943, 325), 600, 10, 0, 50, True)
+                    Dim generatedMaze As maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
+                                                             windingPercent, showMazeGen)
                     SetCursorPosition(0, 0)
                     DisplayMaze(generatedMaze)
                     ReadLine()
@@ -185,45 +185,32 @@ Module Module1
         FileClose(0)
     End Sub
     
-    Private Sub GenerateMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte, ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
+    Private Sub GenerateMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
+                             ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
         Dim keypressed As Integer
         Dim topposition = 1
         Dim bottomspot = 7
         Dim position = 0
-        WriteLine("Generation Settings (think of these like difficulty settings)")
-        WriteLine("Maze width (odd integer 21-325: ")
-        WriteLine("Maze height (odd integer 21-943: ")
-        WriteLine("No. of attempts to place a room (0-1000 recommended): ")
-        WriteLine("Percentage chance for extra room connections (0-100): ")
-        WriteLine("Extra size for rooms (any integer): ")
-        WriteLine("Percentage chance for paths to wind (0-100): ")
-        WriteLine("Whether the generation is instant (True-False): ")
+        Dim lines() As String = {" Maze width (odd integer 21-325): ", " Maze height (odd integer 21-943): ",
+                                 " No. of attempts to place a room (0-1000 recommended): ",
+                                 " Percentage chance for extra room connections (0-100): ",
+                                 " Extra size for rooms (any integer): ",
+                                 " Percentage chance for paths to wind (0-100): ",
+                                 " Whether the generation is instant (True-False): "}
+        
+        WriteLine(" Generation Settings (think of these like difficulty settings)")
+        For x = 0 To lines.Length - 1
+            WriteLine(lines(x))
+        Next
         WriteLine(" Save settings")
         Do
-            Dim left As Byte
-            Select Case position
-                Case 0
-                    left = 31
-                Case 1
-                    left = 32
-                Case 2
-                    left = 53
-                Case 3
-                    left = 53
-                Case 4
-                    left = 35
-                Case 5
-                    left = 44
-                Case 6
-                    left = 47
-                Case 7
-                    left = 0
-            End Select
-            SetCursorPosition(left, position + topposition)
-            Write(">")
             If position = 7
+                SetCursorPosition(0, 8)
+                Write(">")
                 keypressed = ReadKey(True).Key
             Else
+                SetCursorPosition(lines(position).Length - 1, position + topposition)
+                Write(">")
                 keypressed = ReadKey().Key
             End If
             Select Case keypressed
@@ -251,11 +238,12 @@ Module Module1
         fontSize = 17
         Do
             fontSize -= 1
-        Loop Until fontSize * 2 * (mazeSize.y + 2) < 1070 AndAlso fontSize * 2 * (mazeSize.x + 2) < 1910
+        Loop Until (fontSize * 2 * (mazeSize.y + 2)) < 1070 AndAlso (fontSize * 2 * (mazeSize.x + 2)) < 1910
         Return fontSize
     End Function
     
-    Private Function GenerateMaze(mazeSize As vec, roomTryCount As Short, extraConnectorChance As Byte, roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As maze
+    Private Function GenerateMaze(mazeSize As vec, roomTryCount As Short, extraConnectorChance As Byte,
+                                  roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -291,10 +279,10 @@ Module Module1
             Dim newRoomPos = New vec(GetRnd(0, (mazeSize.x - roomSize.x) \ 2) * 2,
                                             GetRnd(0, (mazeSize.y - roomSize.y) \ 2) * 2)
             'checks if it overlaps an existing room
-            If roomList.Any(Function(r) newRoomPos.x <= r.Pos.x + r.Size.x AndAlso
-                                        newRoomPos.x + roomSize.x >= r.Pos.x AndAlso
-                                        newRoomPos.y <= r.Pos.y + r.Size.y AndAlso
-                                        newRoomPos.y + roomSize.y >= r.Pos.y) Then Continue For
+            If roomList.Any(Function(r) newRoomPos.x <= r.Pos.x + r.Size.x + 2 AndAlso
+                                        newRoomPos.x + roomSize.x + 2 >= r.Pos.x AndAlso
+                                        newRoomPos.y <= r.Pos.y + r.Size.y + 2 AndAlso
+                                        newRoomPos.y + roomSize.y + 2 >= r.Pos.y) Then Continue For
             Dim newRoom = New room(newRoomPos, roomSize)
             roomList.Add(newRoom)
             'start region
@@ -430,7 +418,8 @@ Module Module1
     End Function
     
     <Extension>
-    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze, Optional displayChanges As Boolean = False)
+    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze,
+                      Optional displayChanges As Boolean = False)
         If pos.x < maze.Size.x AndAlso pos.x > -1 AndAlso pos.y < maze.Size.y AndAlso pos.y > - 1
             regionAtPos(pos.x, pos.y) = currentRegion
             maze.Cells(pos.x, pos.y) = 1
