@@ -4,6 +4,7 @@ Imports System.Convert
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports System.Text
+Imports Microsoft.SqlServer.Server
 
 Module Module1
     Const johnson = "fileNames.txt"
@@ -11,8 +12,17 @@ Module Module1
     Const floor = "  "
     Const wallSize = 2
     Const initialFontWeight = 400
-    Const initialFontSize = 42
+    Const initialFontSize = 36
     Const initialFontName = "Lucida Sans Typewriter"
+    
+    Const defaultMazeWidth = 101
+    Const defaultMazeHeight = 101
+    Const roomTryCount As Short = 400
+    Const extraConnectorChance As Byte = 35
+    Const roomExtraSize As Short = 1
+    Const windingPercent As Byte = 50
+    Const showMazeGen = True
+    
     Sub Main()
         Dim mainMenuChoice As Integer
         Dim currentMaze As maze
@@ -23,7 +33,7 @@ Module Module1
         Dim extraConnectorChance As Byte = 20
         Dim roomExtraSize As Short = 0
         Dim windingPercent As Byte = 60
-        Dim showMazeGen As Boolean = True
+        Dim showMazeGen = True
         
         
         MaximiseConsole()
@@ -50,7 +60,7 @@ Module Module1
                     ReadLine()
                     Clear()
                 Case 2
-                    GenerateMenu(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
+                    GenerationMenu(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
             End Select
         Loop Until mainMenuChoice = 3
     End Sub
@@ -102,10 +112,9 @@ Module Module1
         End If
         
         'menu code
-        Dim fileCount As Integer = fileNames.Length
         Dim keypressed As Integer
-        Dim topposition = 0
-        Dim bottomspot = fileCount
+        Const topPos As Byte = 0
+        Dim bottomPos As Byte = fileNames.Length
         Dim position = 0
         WriteLine(" Back to main menu")
         For Each fileName As String In fileNames
@@ -119,13 +128,13 @@ Module Module1
                 Case Is = ConsoleKey.DownArrow
                     CursorLeft -= 1
                     Write(" ")
-                    If position < bottomspot Then
+                    If position < bottomPos Then
                         position += 1
                     End If
                 Case Is = ConsoleKey.UpArrow
                     CursorLeft -= 1
                     Write(" ")
-                    If position > topposition Then
+                    If position > topPos Then
                         position -= 1
                     End If
             End Select
@@ -172,7 +181,7 @@ Module Module1
         Return maze
     End Function
 
-    Private Sub SaveGrid(maze As maze, fileName As String)
+    Private Sub SaveMaze(maze As maze, fileName As String)
         FileOpen(0, fileName, OpenMode.Output)
         FileSystem.WriteLine(0, "Height: " & maze.Size.y)
         FileSystem.WriteLine(0, "Width: " & maze.Size.x)
@@ -185,53 +194,160 @@ Module Module1
         FileClose(0)
     End Sub
     
-    Private Sub GenerateMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
+    Private Sub GenerationMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
                              ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
         Dim keypressed As Integer
-        Dim topposition = 1
-        Dim bottomspot = 7
+        Const topPos As Byte = 2
+        Const bottomPos As Byte = 6
         Dim position = 0
-        Dim lines() As String = {" Maze width (odd integer 21-325): ", " Maze height (odd integer 21-943): ",
-                                 " No. of attempts to place a room (0-1000 recommended): ",
-                                 " Percentage chance for extra room connections (0-100): ",
-                                 " Extra size for rooms (any integer): ",
-                                 " Percentage chance for paths to wind (0-100): ",
-                                 " Whether the generation is instant (True-False): "}
+        Dim lines() As String = {"Maze width (odd integer 21-325): ", "Maze height (odd integer 21-943): ",
+                                 "No. of attempts to place a room (0-1000 recommended): ",
+                                 "Percentage chance for extra room connections (0-100): ",
+                                 "Extra room size (0-10 recommended): ",
+                                 "Percentage chance for paths to wind (0-100): ",
+                                 "Instant generation (True(1)-False(0)): "}
         
-        WriteLine(" Generation Settings (think of these like difficulty settings)")
+        WriteLine("Generation Settings (think of these like difficulty settings)")
+        WriteLine("Press Enter to save settings")
         For x = 0 To lines.Length - 1
             WriteLine(lines(x))
         Next
-        WriteLine(" Save settings")
+        Dim errorMessage As String
+        Dim input(bottomPos + 1) As String
+        For x = 0 To bottomPos
+            input(x) = ""
+        Next
         Do
-            If position = 7
-                SetCursorPosition(0, 8)
-                Write(">")
+            Dim isInputting = False
+            Dim inputLength As Byte
+            Do
+                If Not isInputting
+                    SetCursorPosition(lines(position).Length - 1, position + topPos)
+                    Write(">")
+                End If
                 keypressed = ReadKey(True).Key
-            Else
-                SetCursorPosition(lines(position).Length - 1, position + topposition)
-                Write(">")
-                keypressed = ReadKey().Key
-            End If
-            Select Case keypressed
-                Case Is = ConsoleKey.DownArrow
-                    CursorLeft -= (2 - position \ 7)
-                    Write(" ")
-                    If position < bottomspot Then
-                        position += 1
-                    End If
-                Case Is = ConsoleKey.UpArrow
-                    CursorLeft -= (2 - position \ 7)
-                    Write(" ")
-                    If position >= topposition Then
-                        position -= 1
-                    End If
-            End Select
-        Loop Until keypressed = ConsoleKey.Enter
-        If position = 0
-            Return
-        End If
+                Select Case keypressed
+                    Case ConsoleKey.DownArrow
+                        CursorLeft = lines(position).Length - 1
+                        Write(" ")
+                        If position < bottomPos Then
+                            position += 1
+                        End If
+                        isInputting = False
+                        inputLength = 0
+                    Case ConsoleKey.UpArrow
+                        CursorLeft = lines(position).Length - 1
+                        Write(" ")
+                        If position > 0 Then
+                            position -= 1
+                        End If
+                        isInputting = False
+                        inputLength = 0
+                    Case Else
+                        If inputLength < 11
+                            isInputting = True
+                            If inputLength = 0 AndAlso input(position).Length > 0
+                                Write("           ")
+                                CursorLeft -= 11
+                                input(position) = ""
+                            End If
+                            inputLength += 1
+                            If keypressed <> ConsoleKey.Enter
+                                input(position) &= ChrW(keypressed)
+                                Write(ChrW(keypressed))
+                            End If
+                        End If
+                End Select
+            Loop Until keypressed = ConsoleKey.Enter
+            For x = 0 To bottomPos
+                errorMessage = input(x).IsValidInput(x)
+                If errorMessage.Length > 0 Then Exit For
+            Next
+            SetCursorPosition(0, bottomPos + topPos + 2)
+            WriteLine(errorMessage)
+        Loop Until errorMessage.Length = 0
+        
+        'save settings code
+        
+        
     End Sub
+    
+    <Extension>
+    Private Function IsValidInput(input As String, position As Byte) As String
+        Select Case position
+            Case 0
+                If NOT IsNumeric(input)
+                    Return "Maze width is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "Maze width is not an integer"
+                End If
+                If input Mod 2 <> 1
+                    Return "Maze width is not odd"
+                End If
+                If input < 21 OrElse input > 325
+                    Return "Maze width is out of range"
+                End If
+            Case 1
+                If NOT IsNumeric(input)
+                    Return "Maze height is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "Maze height is not an integer"
+                End If
+                If input Mod 2 <> 1
+                    Return "Maze height is not odd"
+                End If
+                If input < 21 OrElse input > 943
+                    Return "Maze height is out of range"
+                End If
+            Case 2
+                If NOT IsNumeric(input)
+                    Return "No. of tries to place a room is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "No. of tries to place a room is not an integer"
+                End If
+                If input < 0 Or input > 32767
+                    Return "No. of tries to place a room is out of range"
+                End If
+            Case 3
+                If NOT IsNumeric(input)
+                    Return "Extra room connector chance is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "Extra room connector chance is not an integer"
+                End If
+                If input < 0 OrElse input > 100
+                    Return "Extra room connector chance is out of range"
+                End If
+            Case 4
+                If NOT IsNumeric(input)
+                    Return "Extra room size is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "Extra room size is not an integer"
+                End If
+                If input < 0 OrElse input > 32767
+                    Return "Extra room size is out of range"
+                End If
+            Case 5
+                If NOT IsNumeric(input)
+                    Return "Path winding chance is not a number"
+                End If
+                If input Mod 1 <> 0
+                    Return "Path winding chance is not an integer"
+                End If
+                If input < 0 OrElse input > 100
+                    Return "Path winding chance is out of range"
+                End If
+            Case 6
+                If NOT IsNumeric(input) OrElse input < 0 OrElse input > 1
+                    Return "Instant generation is not 1 or 0"
+                End If
+        End Select
+        Return ""
+    End Function
     
     Private Function CalculateFontSize(mazeSize As vec) As Byte
         Dim fontSize As Byte
