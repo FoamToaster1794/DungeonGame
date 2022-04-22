@@ -4,7 +4,6 @@ Imports System.Convert
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports System.Text
-Imports Microsoft.SqlServer.Server
 
 Module Module1
     Const johnson = "fileNames.txt"
