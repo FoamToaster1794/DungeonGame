@@ -6,22 +6,14 @@ Imports System.Runtime.InteropServices
 Imports System.Text
 
 Module Module1
-    Const johnson = "fileNames.txt"
+    Const johnson1 = "fileNames.txt"
+    Const johnson2 = "genSettings.txt"
     Const wall = "██"
     Const floor = "  "
     Const wallSize = 2
     Const initialFontWeight = 400
     Const initialFontSize = 36
     Const initialFontName = "Lucida Sans Typewriter"
-    
-    Const defaultMazeWidth = 101
-    Const defaultMazeHeight = 101
-    Const roomTryCount As Short = 400
-    Const extraConnectorChance As Byte = 35
-    Const roomExtraSize As Short = 1
-    Const windingPercent As Byte = 50
-    Const showMazeGen = True
-    
     Sub Main()
         Dim mainMenuChoice As Integer
         Dim currentMaze As maze
@@ -34,6 +26,7 @@ Module Module1
         Dim windingPercent As Byte = 60
         Dim showMazeGen = True
         
+        GenerateFiles()
         
         MaximiseConsole()
         Do 
@@ -64,7 +57,14 @@ Module Module1
         Loop Until mainMenuChoice = 3
     End Sub
     
-    
+    Private Sub GenerateFiles()
+        If Not File.Exists(johnson1)
+            File.Create(johnson1)
+        End If
+        If Not File.Exists(johnson2)
+            File.WriteAllLines(johnson2, New String(){"51", "51", "50", "20", "0", "60", "1"})
+        End If
+    End Sub
 
     Private Sub MainMenu(ByRef position As Integer)
         Dim keypressed As Integer
@@ -98,12 +98,12 @@ Module Module1
     End Sub
     
     Private Sub LoadMaze(ByRef maze As maze)
-        If Not File.Exists(johnson)
+        If Not File.Exists(johnson1)
             WriteLine("No files to load")
             ReadLine()
             Return
         End If
-        Dim fileNames() As String = File.ReadAllLines(johnson)
+        Dim fileNames() As String = File.ReadAllLines(johnson1)
         If fileNames.Length = 0
             WriteLine("No files to load")
             ReadLine()
@@ -192,7 +192,7 @@ Module Module1
         Next
         FileClose(0)
     End Sub
-    
+        
     Private Sub GenerationMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
                              ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
         Dim keypressed As Integer
@@ -267,7 +267,7 @@ Module Module1
         Loop Until errorMessage.Length = 0
         
         'save settings code
-        
+        File.WriteAllLines(johnson2, input)
         
     End Sub
     
