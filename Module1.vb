@@ -199,6 +199,10 @@ Module Module1
         Const topPos As Byte = 2
         Const bottomPos As Byte = 6
         Dim position = 0
+        Dim input(bottomPos + 1) As String
+        For x = 0 To bottomPos
+            input = File.ReadAllLines(johnson2)
+        Next
         Dim lines() As String = {"Maze width (odd integer 21-325): ", "Maze height (odd integer 21-943): ",
                                  "No. of attempts to place a room (0-1000 recommended): ",
                                  "Percentage chance for extra room connections (0-100): ",
@@ -209,16 +213,12 @@ Module Module1
         WriteLine("Generation Settings (think of these like difficulty settings)")
         WriteLine("Press Enter to save settings")
         For x = 0 To lines.Length - 1
-            WriteLine(lines(x))
+            WriteLine(lines(x) + input(x))
         Next
         Dim errorMessage As String
-        Dim input(bottomPos + 1) As String
-        For x = 0 To bottomPos
-            input(x) = ""
-        Next
         Do
             Dim isInputting = False
-            Dim inputLength As Byte
+            Dim inputLength As Byte = 0
             Do
                 If Not isInputting
                     SetCursorPosition(lines(position).Length - 1, position + topPos)
@@ -242,6 +242,7 @@ Module Module1
                         End If
                         isInputting = False
                         inputLength = 0
+                    Case ConsoleKey.Enter
                     Case Else
                         If inputLength < 11
                             isInputting = True
@@ -251,10 +252,12 @@ Module Module1
                                 input(position) = ""
                             End If
                             inputLength += 1
-                            If keypressed <> ConsoleKey.Enter
-                                input(position) &= ChrW(keypressed)
-                                Write(ChrW(keypressed))
-                            End If
+                            input(position) &= ChrW(keypressed)
+                            Write(ChrW(keypressed))
+'                            If keypressed <> ConsoleKey.Enter
+'                                input(position) &= ChrW(keypressed)
+'                                Write(ChrW(keypressed))
+'                            End If
                         End If
                 End Select
             Loop Until keypressed = ConsoleKey.Enter
@@ -263,7 +266,7 @@ Module Module1
                 If errorMessage.Length > 0 Then Exit For
             Next
             SetCursorPosition(0, bottomPos + topPos + 2)
-            WriteLine(errorMessage)
+            WriteLine(errorMessage + "                        ")
         Loop Until errorMessage.Length = 0
         
         'save settings code
