@@ -19,14 +19,15 @@ Module Module1
         Dim currentMaze As maze
         
         '          max for 1080p:943,  325
-        Dim mazeSize = New vec(101, 101)
-        Dim roomTryCount As Short = 32767
-        Dim extraConnectorChance As Byte = 20
-        Dim roomExtraSize As Short = 0
-        Dim windingPercent As Byte = 60
-        Dim showMazeGen = True
+        Dim mazeSize = New vec()
+        Dim roomTryCount As Short
+        Dim extraConnectorChance As Byte
+        Dim roomExtraSize As Short
+        Dim windingPercent As Byte
+        Dim showMazeGen As Boolean
         
         GenerateFiles()
+        LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
         
         MaximiseConsole()
         Do 
@@ -41,9 +42,14 @@ Module Module1
 '                    If maze.Size.x > 0 Then
 '                         DisplayMaze(maze)
 '                    End If
+                    Dim fontSize As Byte = CalculateFontSize(currentMaze.Size)
+                    'MsgBox(fontSize)
+                    SetupConsole(100, fontSize, "Consolas")
+                    DisplayMaze(currentMaze)
+                    ReadLine()
                 Case 1
                     Dim fontSize As Byte = CalculateFontSize(mazeSize)
-                    MsgBox(fontSize)
+                    'MsgBox(fontSize)
                     SetupConsole(100, fontSize, "Consolas")
                     Dim generatedMaze As maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
                                                              windingPercent, showMazeGen)
@@ -52,7 +58,9 @@ Module Module1
                     ReadLine()
                     Clear()
                 Case 2
-                    GenerationMenu(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
+                    GenerationMenu()
+                    LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent,
+                                    showMazeGen)
             End Select
         Loop Until mainMenuChoice = 3
     End Sub
@@ -142,12 +150,12 @@ Module Module1
             Return
         End If
         Clear()
-        Dim mazeName As String = fileNames(position)
+        Dim mazeName As String = fileNames(position - 1)
         maze = LoadMazeFromFile(mazeName)
     End Sub
 
     Private Function LoadMazeFromFile(fileName As String) As maze
-        Dim lines() As String = File.ReadAllLines(fileName)
+        Dim lines() As String = File.ReadAllLines(fileName & ".txt")
         Dim input As String = lines(0).Remove(0, 8)
         Dim tempHeight, tempWidth As Integer
         If IsNumeric(input) AndAlso input > 0 AndAlso input Mod 1 = 0 Then
@@ -192,9 +200,19 @@ Module Module1
         Next
         FileClose(0)
     End Sub
+    
+    Private Sub LoadGenSettings(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
+                                ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
+        Dim input() As String = File.ReadAllLines(johnson2)
+        mazeSize = New vec(input(0), input(1))
+        roomTryCount = input(2)
+        extraConnectorChance = input(3)
+        roomExtraSize = input(4)
+        windingPercent = input(5)
+        showMazeGen = (input(6) + 1) Mod 2
+    End Sub
         
-    Private Sub GenerationMenu(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
-                             ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
+    Private Sub GenerationMenu()
         Dim keypressed As Integer
         Const topPos As Byte = 2
         Const bottomPos As Byte = 6
@@ -208,7 +226,7 @@ Module Module1
                                  "Percentage chance for extra room connections (0-100): ",
                                  "Extra room size (0-10 recommended): ",
                                  "Percentage chance for paths to wind (0-100): ",
-                                 "Instant generation (True(1)-False(0)): "}
+                                 "Instant generation False(0)-True(1): "}
         
         WriteLine("Generation Settings (think of these like difficulty settings)")
         WriteLine("Press Enter to save settings")
@@ -271,7 +289,6 @@ Module Module1
         
         'save settings code
         File.WriteAllLines(johnson2, input)
-        
     End Sub
     
     <Extension>
