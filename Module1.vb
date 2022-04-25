@@ -43,14 +43,11 @@ Module Module1
 '                         DisplayMaze(maze)
 '                    End If
                     Dim fontSize As Byte = CalculateFontSize(currentMaze.Size)
-                    'MsgBox(fontSize)
+                    MsgBox(fontSize)
                     SetupConsole(100, fontSize, "Consolas")
                     DisplayMaze(currentMaze)
                     ReadLine()
                 Case 1
-                    Dim fontSize As Byte = CalculateFontSize(mazeSize)
-                    'MsgBox(fontSize)
-                    SetupConsole(100, fontSize, "Consolas")
                     Dim generatedMaze As maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
                                                              windingPercent, showMazeGen)
                     SetCursorPosition(0, 0)
@@ -382,12 +379,17 @@ Module Module1
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
+        Clear()
+        Dim fontSize As Byte = CalculateFontSize(mazeSize)
+        MsgBox(fontSize)
+        SetupConsole(100, fontSize, "Consolas")
         Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
         Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
         Dim currentRegion As Short = -1
         
         DisplayMaze(maze)
+        If showMazeGen Then ReadLine()
         
         'Add rooms
         
@@ -397,7 +399,7 @@ Module Module1
             modCount = ((roomTryCount ^ 2) * 30) \ 700 + 1
             sleepTime = 100 \ roomTryCount
         End If
-        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        'MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim cellCount = 0
         For z = 0 To roomTryCount - 1
@@ -437,7 +439,7 @@ Module Module1
         
         SetCursorPosition(0, 0)
         DisplayMaze(maze)
-        ReadLine()
+        If showMazeGen Then ReadLine()
         
         'maze generation
         
@@ -447,7 +449,7 @@ Module Module1
             modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
             sleepTime = 900 \ (mazeSize.x + mazeSize.y)
         End If
-        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        'MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim regionCount = 0
         For y = 0 To mazeSize.y Step 2
@@ -508,7 +510,7 @@ Module Module1
         Dim connectorregions = New Dictionary(Of vec, LinkedList(Of Integer))
         'tuans space ill get it eventually 
         
-        ReadLine()
+        If showMazeGen Then ReadLine()
         
         'remove dead ends
         
@@ -518,7 +520,7 @@ Module Module1
             modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
             sleepTime = 900 \ (mazeSize.x + mazeSize.y)
         End If
-        MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
+        'MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim removedCount = 0
         For y = 0 To mazeSize.y - 1
@@ -654,7 +656,7 @@ Module Module1
     'stuff for changing font size
     
     Private Const STD_OUTPUT_HANDLE = -11
-    Private Sub SetupConsole(fontWeight As Short, fontSize As Short, Optional fontName As String = "Raster Fonts")
+    Private Sub SetupConsole(fontWeight As Short, fontSize As Short, fontName As String)
         Dim hHandle As IntPtr = GetStdHandle(CType(STD_OUTPUT_HANDLE, IntPtr))
         If (hHandle <> CType(- 1, IntPtr)) Then
             Dim fontInfoex = New CONSOLE_FONT_INFOEX()
