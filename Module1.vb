@@ -50,7 +50,7 @@ Module Module1
 '                         DisplayMaze(maze)
 '                    End If
                     Dim fontSize As Byte = CalculateFontSize(currentMaze.Size)
-                    MsgBox(fontSize)
+                    'MsgBox(fontSize)
                     SetupConsole(100, fontSize, "Consolas")
                     DisplayMaze(currentMaze)
                     ReadLine()
@@ -308,7 +308,7 @@ Module Module1
                 If input Mod 2 <> 1
                     Return "Maze width is not odd"
                 End If
-                If input < 21 OrElse input > 1000 ' 943
+                If input < 21 OrElse input > 943
                     Return "Maze width is out of range"
                 End If
             Case 1
@@ -321,7 +321,7 @@ Module Module1
                 If input Mod 2 <> 1
                     Return "Maze height is not odd"
                 End If
-                If input < 21 OrElse input > 1000 '325
+                If input < 21 OrElse input > 325
                     Return "Maze height is out of range"
                 End If
             Case 2
@@ -388,7 +388,7 @@ Module Module1
         ReadLine()
         Clear()
         Dim fontSize As Byte = CalculateFontSize(mazeSize)
-        MsgBox(fontSize)
+        'MsgBox(fontSize)
         SetupConsole(100, fontSize, "Consolas")
         Dim maze = New maze(mazeSize)
         Dim roomList = New List(Of room)()
@@ -512,10 +512,22 @@ Module Module1
         Next
         MsgBox("region count: " & regionCount)
         
-        'connect regions
-
-        Dim connectorregions = New Dictionary(Of vec, LinkedList(Of Integer))
-        'tuans space ill get it eventually 
+        'connect rooms to maze
+        
+        For Each roomItem In roomList
+            Dim size As Byte
+            Dim isOnWidth As Boolean = GetRnd(0, 1)
+            Dim isOnEnd As Boolean= GetRnd(0, 1)
+            Dim holePos As vec
+            If isOnWidth
+                size = roomItem.Size.x
+                holePos
+            Else
+                size = roomItem.Size.y
+            End If
+            
+        Next
+        
         
         If showMazeGen Then ReadLine()
         
