@@ -30,6 +30,13 @@ Module Module1
         LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
         
         MaximiseConsole()
+'        Dim done = False
+'        Dim height = 1000
+'        Dim width = 400
+'        Do
+'            height
+'        Loop Until done
+        
         Do 
             Clear()
             SetupConsole(initialFontWeight, initialFontSize, initialFontName)
@@ -218,7 +225,7 @@ Module Module1
         For x = 0 To bottomPos
             input = File.ReadAllLines(johnson2)
         Next
-        Dim lines() As String = {"Maze width (odd integer 21-325): ", "Maze height (odd integer 21-943): ",
+        Dim lines() As String = {"Maze width (odd integer 21-943): ", "Maze height (odd integer 21-325): ",
                                  "No. of attempts to place a room (0-1000 recommended): ",
                                  "Percentage chance for extra room connections (0-100): ",
                                  "Extra room size (0-10 recommended): ",
@@ -301,20 +308,20 @@ Module Module1
                 If input Mod 2 <> 1
                     Return "Maze width is not odd"
                 End If
-                If input < 21 OrElse input > 325
+                If input < 21 OrElse input > 1000 ' 943
                     Return "Maze width is out of range"
                 End If
             Case 1
                 If NOT IsNumeric(input)
                     Return "Maze height is not a number"
-                End If
+                End Ifs
                 If input Mod 1 <> 0
                     Return "Maze height is not an integer"
                 End If
                 If input Mod 2 <> 1
                     Return "Maze height is not odd"
                 End If
-                If input < 21 OrElse input > 943
+                If input < 21 OrElse input > 1000 '325
                     Return "Maze height is out of range"
                 End If
             Case 2
