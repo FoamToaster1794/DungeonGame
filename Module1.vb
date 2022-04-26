@@ -314,7 +314,7 @@ Module Module1
             Case 1
                 If NOT IsNumeric(input)
                     Return "Maze height is not a number"
-                End Ifs
+                End If
                 If input Mod 1 <> 0
                     Return "Maze height is not an integer"
                 End If
