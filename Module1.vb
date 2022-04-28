@@ -16,10 +16,10 @@ Module Module1
     Const initialFontName = "Lucida Sans Typewriter"
     Sub Main()
         Dim mainMenuChoice As Integer
-        Dim currentMaze As maze
+        Dim currentMaze As Maze
         
         '          max for 1080p:943,  325
-        Dim mazeSize = New vec()
+        Dim mazeSize = New Vec()
         Dim roomTryCount As Short
         Dim extraConnectorChance As Byte
         Dim roomExtraSize As Short
@@ -55,7 +55,7 @@ Module Module1
                     DisplayMaze(currentMaze)
                     ReadLine()
                 Case 1
-                    Dim generatedMaze As maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
+                    Dim generatedMaze As Maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
                                                              windingPercent, showMazeGen)
                     SetCursorPosition(0, 0)
                     DisplayMaze(generatedMaze)
@@ -109,7 +109,7 @@ Module Module1
         Clear()
     End Sub
     
-    Private Sub LoadMaze(ByRef maze As maze)
+    Private Sub LoadMaze(ByRef maze As Maze)
         If Not File.Exists(johnson1)
             WriteLine("No files to load")
             ReadLine()
@@ -158,7 +158,7 @@ Module Module1
         maze = LoadMazeFromFile(mazeName)
     End Sub
 
-    Private Function LoadMazeFromFile(fileName As String) As maze
+    Private Function LoadMazeFromFile(fileName As String) As Maze
         Dim lines() As String = File.ReadAllLines(fileName & ".txt")
         Dim input As String = lines(0).Remove(0, 8)
         Dim tempHeight, tempWidth As Integer
@@ -167,7 +167,7 @@ Module Module1
         Else
             WriteLine("Error has occured when loading grid")
             WriteLine("Height is not valid")
-            Return New maze()
+            Return New Maze()
         End If
         input = lines(1).Remove(0, 7)
         If IsNumeric(input) AndAlso input > 0 AndAlso input Mod 1 = 0 Then
@@ -175,16 +175,16 @@ Module Module1
         Else
             WriteLine("Error has occured when loading grid")
             WriteLine("Width is not valid")
-            Return New maze()
+            Return New Maze()
         End If
-        Dim maze = New maze(New vec(tempWidth, tempHeight))
-        For y = 0 To maze.Size.y - 1
+        Dim maze = New Maze(New Vec(tempWidth, tempHeight))
+        For y = 0 To maze.Size.Y - 1
             For x = 0 To lines(y + 2).Length - 1
                 Dim character As Char = lines(y + 2)(x)
                 If Not Char.IsNumber(character) OrElse ToInt16(character.ToString()) > 1 Then
                     WriteLine("Error has occured when loading grid")
                     WriteLine("Grid cell at position (" & x & ", " & y & ") is not valid")
-                    Return New maze()
+                    Return New Maze()
                 End If
                 maze.Cells(x, y) = ToInt16(character.ToString())
             Next
@@ -192,12 +192,12 @@ Module Module1
         Return maze
     End Function
 
-    Private Sub SaveMaze(maze As maze, fileName As String)
+    Private Sub SaveMaze(maze As Maze, fileName As String)
         FileOpen(0, fileName, OpenMode.Output)
-        FileSystem.WriteLine(0, "Height: " & maze.Size.y)
-        FileSystem.WriteLine(0, "Width: " & maze.Size.x)
-        For y = 0 To maze.Size.y
-            For x = 0 To maze.Size.x
+        FileSystem.WriteLine(0, "Height: " & maze.Size.Y)
+        FileSystem.WriteLine(0, "Width: " & maze.Size.X)
+        For y = 0 To maze.Size.Y
+            For x = 0 To maze.Size.X
                 FileSystem.Write(0, maze.Cells(x, y))
             Next
             FileSystem.WriteLine(0, "")
@@ -205,10 +205,10 @@ Module Module1
         FileClose(0)
     End Sub
     
-    Private Sub LoadGenSettings(ByRef mazeSize As vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
+    Private Sub LoadGenSettings(ByRef mazeSize As Vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
                                 ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
         Dim input() As String = File.ReadAllLines(johnson2)
-        mazeSize = New vec(input(0), input(1))
+        mazeSize = New Vec(input(0), input(1))
         roomTryCount = input(2)
         extraConnectorChance = input(3)
         roomExtraSize = input(4)
@@ -372,17 +372,17 @@ Module Module1
         Return ""
     End Function
     
-    Private Function CalculateFontSize(mazeSize As vec) As Byte
+    Private Function CalculateFontSize(mazeSize As Vec) As Byte
         Dim fontSize As Byte
         fontSize = 17
         Do
             fontSize -= 1
-        Loop Until (fontSize * 2 * (mazeSize.y + 2)) < 1070 AndAlso (fontSize * 2 * (mazeSize.x + 2)) < 1910
+        Loop Until (fontSize * 2 * (mazeSize.Y + 2)) < 1070 AndAlso (fontSize * 2 * (mazeSize.X + 2)) < 1910
         Return fontSize
     End Function
     
-    Private Function GenerateMaze(mazeSize As vec, roomTryCount As Short, extraConnectorChance As Byte,
-                                  roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As maze
+    Private Function GenerateMaze(mazeSize As Vec, roomTryCount As Short, extraConnectorChance As Byte,
+                                  roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As Maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -390,9 +390,9 @@ Module Module1
         Dim fontSize As Byte = CalculateFontSize(mazeSize)
         'MsgBox(fontSize)
         SetupConsole(100, fontSize, "Consolas")
-        Dim maze = New maze(mazeSize)
-        Dim roomList = New List(Of room)()
-        Dim regionAtPos(mazeSize.x - 1, mazeSize.y - 1) As Integer
+        Dim maze = New Maze(mazeSize)
+        Dim roomList = New List(Of Room)()
+        Dim regionAtPos(mazeSize.X - 1, mazeSize.Y - 1) As Integer
         Dim currentRegion As Short = -1
         
         DisplayMaze(maze)
@@ -412,30 +412,30 @@ Module Module1
         For z = 0 To roomTryCount - 1
             Dim size As Short = GetRnd(1, 3 + roomExtraSize) * 2 + 1
             Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
-            Dim roomSize = New vec(size, size)
+            Dim roomSize = New Vec(size, size)
 
             If (GetRnd(1, 2) = 2) Then
-                roomSize.x += rectangularity
+                roomSize.X += rectangularity
             Else
-                roomSize.y += rectangularity
+                roomSize.Y += rectangularity
             End If
 
-            Dim newRoomPos = New vec(GetRnd(0, (mazeSize.x - roomSize.x) \ 2) * 2,
-                                            GetRnd(0, (mazeSize.y - roomSize.y) \ 2) * 2)
+            Dim newRoomPos = New Vec(GetRnd(0, (mazeSize.X - roomSize.X) \ 2) * 2,
+                                            GetRnd(0, (mazeSize.Y - roomSize.Y) \ 2) * 2)
             'checks if it overlaps an existing room
-            If roomList.Any(Function(r) newRoomPos.x <= r.Pos.x + r.Size.x + 2 AndAlso
-                                        newRoomPos.x + roomSize.x + 2 >= r.Pos.x AndAlso
-                                        newRoomPos.y <= r.Pos.y + r.Size.y + 2 AndAlso
-                                        newRoomPos.y + roomSize.y + 2 >= r.Pos.y) Then Continue For
-            Dim newRoom = New room(newRoomPos, roomSize)
+            If roomList.Any(Function(r) newRoomPos.X <= r.Pos.X + r.Size.X + 2 AndAlso
+                                        newRoomPos.X + roomSize.X + 2 >= r.Pos.X AndAlso
+                                        newRoomPos.Y <= r.Pos.Y + r.Size.Y + 2 AndAlso
+                                        newRoomPos.Y + roomSize.Y + 2 >= r.Pos.Y) Then Continue For
+            Dim newRoom = New Room(newRoomPos, roomSize)
             roomList.Add(newRoom)
             'start region
             currentRegion += 1
             'carving
-            For x = 0 To newRoom.Size.x - 1
-                For y = 0 to newRoom.Size.y - 1
-                    Dim pos = New vec(newRoomPos.x + x, newRoomPos.y + y)
-                    pos.Carve(currentRegion, regionAtPos, maze, True)
+            For x = 0 To newRoom.Size.X - 1
+                For y = 0 to newRoom.Size.Y - 1
+                    Dim pos = New Vec(newRoomPos.X + x, newRoomPos.Y + y)
+                    pos.Carve(maze, True)
                     cellCount += 1
                     If modCount > 0 AndAlso cellCount Mod modCount = 0
                         Threading.Thread.Sleep(sleepTime)
@@ -453,35 +453,36 @@ Module Module1
         modCount = 1
         sleepTime = 0
         If showMazeGen
-            modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
-            sleepTime = 900 \ (mazeSize.x + mazeSize.y)
+            modCount = (mazeSize.X * mazeSize.Y * 1.4) \ 1000 + 1
+            sleepTime = 900 \ (mazeSize.X + mazeSize.Y)
         End If
         'MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim regionCount = 0
-        For y = 0 To mazeSize.y Step 2
-            For x = 0 To mazeSize.x Step 2
-                Dim pos = New vec(x, y)
+        For y = 0 To mazeSize.Y Step 2
+            For x = 0 To mazeSize.X Step 2
+                Dim pos = New Vec(x, y)
                 If maze.Cells(x, y) <> 0 Then Continue For
                 
                 regionCount += 1
                 'grow maze
-                Dim cells = New List(Of vec)
+                Dim cells = New List(Of Vec)
                 Dim lastDir As Integer = -1
                 'start region
                 currentRegion += 1
-                'carve
-                pos.Carve(currentRegion, regionAtPos, maze)
+                pos.Carve(maze, False)
+                
+                
                 
                 cells.Add(pos)
                 While cells.Count > 0
                     Dim cell = cells.Last()
                     Dim unmadeCells = New List(Of Integer)
                     For z = 0 To 3
-                        Dim cellAdded As vec = cell.AddDirection(z, 2)
-                        If cellAdded.y < mazeSize.y AndAlso cellAdded.y > -1 AndAlso 
-                           cellAdded.x < mazeSize.x AndAlso cellAdded.x > - 1 AndAlso 
-                           maze.Cells(cellAdded.x, cellAdded.y) = 0
+                        Dim cellAdded As Vec = cell.AddDirection(z, 2)
+                        If cellAdded.Y < mazeSize.Y AndAlso cellAdded.Y > -1 AndAlso 
+                           cellAdded.X < mazeSize.X AndAlso cellAdded.X > - 1 AndAlso 
+                           maze.Cells(cellAdded.X, cellAdded.Y) = 0
                             unmadeCells.Add(z)
                         End If
                     Next
@@ -494,10 +495,10 @@ Module Module1
                             dir = unmadeCells(GetRnd(0, unmadeCells.Count - 1))
                         End If
                         'carving
-                        Dim cell1 As vec = cell.AddDirection(dir)
-                        Dim cell2 As vec = cell.AddDirection(dir, 2)
-                        cell1.Carve(currentRegion, regionAtPos, maze, True)
-                        cell2.Carve(currentRegion, regionAtPos, maze, True)
+                        Dim cell1 As Vec = cell.AddDirection(dir)
+                        Dim cell2 As Vec = cell.AddDirection(dir, 2)
+                        cell1.Carve(maze, True)
+                        cell2.Carve(maze, True)
                         cells.Add(cell2)
                         lastDir = dir
                         If modCount > 0 AndAlso Cells.Count Mod modCount = 0
@@ -515,17 +516,18 @@ Module Module1
         'connect rooms to maze
         
         For Each roomItem In roomList
-            Dim size As Byte
-            Dim isOnWidth As Boolean = GetRnd(0, 1)
-            Dim isOnEnd As Boolean= GetRnd(0, 1)
-            Dim holePos As vec
-            If isOnWidth
-                size = roomItem.Size.x
-                holePos
+            Dim isOnN As Boolean = GetRnd(0, 1)
+            Dim isOnSW As Byte = GetRnd(0, 1)
+            Dim holePos = New Vec()
+            If isOnN
+                holePos.X = GetRnd(0, roomItem.Size.X)
+                holePos.Y = isOnSW*roomItem.Size.Y + (2*isOnSW - 1) 'function so that 0=>-1 and 1=>1
             Else
-                size = roomItem.Size.y
+                holePos.Y = GetRnd(0, roomItem.Size.Y)
+                holePos.X = isOnSW*roomItem.Size.X + (2*isOnSW - 1) 'function so that 0=>-1 and 1=>1
             End If
-            
+            holePos += roomItem.Pos
+            holePos.Carve(maze, True)
         Next
         
         
@@ -536,29 +538,29 @@ Module Module1
         modCount = 1
         sleepTime = 0
         If showMazeGen
-            modCount = (mazeSize.x * mazeSize.y * 1.4) \ 1000 + 1
-            sleepTime = 900 \ (mazeSize.x + mazeSize.y)
+            modCount = (mazeSize.X * mazeSize.Y * 1.4) \ 1000 + 1
+            sleepTime = 900 \ (mazeSize.X + mazeSize.Y)
         End If
         'MsgBox("modCount: " & modCount & " sleepTime: " & sleepTime)
         
         Dim removedCount = 0
-        For y = 0 To mazeSize.y - 1
-            For x = 0 To mazeSize.x - 1
+        For y = 0 To mazeSize.Y - 1
+            For x = 0 To mazeSize.X - 1
                 If maze.Cells(x, y) = 0 Then Continue For
-                Dim pos = New vec(x, y)
+                Dim pos = New Vec(x, y)
                 Dim exits = New List(Of Byte)
                 While True
                     exits.Clear()
                     For z = 0 To 3
                         Dim addPos = pos.AddDirection(z)
-                        If addPos.y < mazeSize.y AndAlso addPos.y > - 1 AndAlso
-                           addPos.x < mazeSize.x AndAlso addPos.x > - 1 AndAlso maze.Cells(addPos.x, addPos.y) = 1
+                        If addPos.Y < mazeSize.Y AndAlso addPos.Y > - 1 AndAlso
+                           addPos.X < mazeSize.X AndAlso addPos.X > - 1 AndAlso maze.Cells(addPos.X, addPos.Y) = 1
                             exits.Add(z)
                         End If
                     Next
                     If exits.Count > 1 Then Exit While
-                    maze.Cells(pos.x, pos.y) = 0
-                    SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
+                    maze.Cells(pos.X, pos.Y) = 0
+                    SetCursorPosition((pos.X + 1) * 2, pos.Y + 1)
                     Write(wall)
                     If exits.Count = 0 Then Exit While
                     pos = pos.AddDirection(exits.First())
@@ -574,46 +576,44 @@ Module Module1
     End Function
     
     <Extension>
-    Private Sub Carve(pos As vec, currentRegion As Integer, ByRef regionAtPos(,) As Integer, ByRef maze As maze,
-                      Optional displayChanges As Boolean = False)
-        If pos.x < maze.Size.x AndAlso pos.x > -1 AndAlso pos.y < maze.Size.y AndAlso pos.y > - 1
-            regionAtPos(pos.x, pos.y) = currentRegion
-            maze.Cells(pos.x, pos.y) = 1
+    Private Sub Carve(pos As Vec, ByRef maze As Maze, displayChanges As Boolean)
+        If pos.X < maze.Size.X AndAlso pos.X > -1 AndAlso pos.Y < maze.Size.Y AndAlso pos.Y > - 1
+            maze.Cells(pos.X, pos.Y) = 1
             If displayChanges
-                SetCursorPosition((pos.x + 1) * 2, pos.y + 1)
+                SetCursorPosition((pos.X + 1) * 2, pos.Y + 1)
                 Write(floor)
             End If
         End If
     End Sub
     
     <Extension>
-    Private Function AddDirection(pos As vec, direction As Integer, Optional amount As Integer = 1) As vec
+    Private Function AddDirection(pos As Vec, direction As Integer, Optional amount As Integer = 1) As Vec
         Select Case direction
             Case 0
-                Return New vec(pos.x, pos.y - amount)
+                Return New Vec(pos.X, pos.Y - amount)
             Case 1
-                Return New vec(pos.x + amount, pos.y)
+                Return New Vec(pos.X + amount, pos.Y)
             Case 2
-                Return New vec(pos.x, pos.y + amount)
+                Return New Vec(pos.X, pos.Y + amount)
             Case 3
-                Return New vec(pos.x - amount, pos.y)
+                Return New Vec(pos.X - amount, pos.Y)
         End Select
         WriteLine("Function add direction has received an invalid direction")
         Return pos
     End Function
 
-    Private Sub DisplayMaze(maze As maze)
+    Private Sub DisplayMaze(maze As Maze)
         Dim line = New StringBuilder
         'For x = 0 To maze.Size.x + 1
             'Write(wall)
         'Next
-        line.Append("█", (maze.Size.x + 2) * wallSize)
+        line.Append("█", (maze.Size.X + 2) * wallSize)
         'WriteLine("")
         line.AppendLine()
-        For y = 0 To maze.Size.y - 1
+        For y = 0 To maze.Size.Y - 1
             'Write(wall)
             line.Append(wall)
-            For x = 0 To maze.Size.x - 1
+            For x = 0 To maze.Size.X - 1
                 'Write(maze.Cells(x, y).ToChar())
                 line.Append(maze.Cells(x, y).ToChar())
             Next
@@ -623,7 +623,7 @@ Module Module1
         'For x = 0 To maze.Size.x + 1
             'Write(wall)
         'Next
-        line.Append("█", (maze.Size.x + 2) * wallSize)
+        line.Append("█", (maze.Size.X + 2) * wallSize)
         'WriteLine("")
         line.AppendLine()
         
@@ -641,31 +641,35 @@ Module Module1
         Return ""
     End Function
 
-    Private Structure maze
-        Dim Size As vec
+    Private Structure Maze
+        Dim Size As Vec
         Dim Cells(,) As Integer '0 is wall 1 is floor
-        Sub New(mazeSize As vec)
-            ReDim Cells(mazeSize.x - 1, mazeSize.y - 1)
+        Sub New(mazeSize As Vec)
+            ReDim Cells(mazeSize.X - 1, mazeSize.Y - 1)
             Size = mazeSize
         End Sub
     End Structure
     
-    Private Structure room
-        Dim Pos As vec
-        Dim Size As vec
+    Private Structure Room
+        Dim Pos As Vec
+        Dim Size As Vec
 
-        Sub New(position As vec, roomSize As vec)
+        Sub New(position As Vec, roomSize As Vec)
             Pos = position
             Size = roomSize
         End Sub
     End Structure
 
-    Private Structure vec
-        Dim x, y As Integer
+    Private Structure Vec
+        Dim X, Y As Integer
         Sub New(xPos As Integer, yPos As Integer)
-            x = xPos
-            y = yPos
+            X = xPos
+            Y = yPos
         End Sub
+        Public Shared Operator +(vec1 As Vec, vec2 As Vec)
+            Return New Vec(vec1.X + vec2.X, vec1.Y + vec2.Y)
+        End Operator
+        
     End Structure
 
     Private Function GetRnd(min As Integer, max As Integer) 'its inclusive on both ends
