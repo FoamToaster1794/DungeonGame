@@ -14,6 +14,9 @@ Module Module1
     Const initialFontWeight = 400
     Const initialFontSize = 36
     Const initialFontName = "Lucida Sans Typewriter"
+    Dim holePositions As List(Of Vec) = New List(Of Vec)()
+    Dim roomPositions As List(Of Vec) = New List(Of Vec)()
+
     Sub Main()
         Dim mainMenuChoice As Integer
         Dim currentMaze As Maze
@@ -61,6 +64,13 @@ Module Module1
                     DisplayMaze(generatedMaze)
                     ReadLine()
                     Clear()
+                    SetupConsole(initialFontWeight, 14, initialFontName)
+                    For x = 0 To roomPositions.Count
+                        WriteLine(
+                            roomPositions(x).X & ", " & roomPositions(x).Y & " hole: " & holePositions(x).X & ", " &
+                            holePositions(x).Y)
+                    Next
+                    ReadLine()
                 Case 2
                     GenerationMenu()
                     LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent,
@@ -392,8 +402,6 @@ Module Module1
         SetupConsole(100, fontSize, "Consolas")
         Dim maze = New Maze(mazeSize)
         Dim roomList = New List(Of Room)()
-        Dim regionAtPos(mazeSize.X - 1, mazeSize.Y - 1) As Integer
-        Dim currentRegion As Short = -1
         
         DisplayMaze(maze)
         If showMazeGen Then ReadLine()
@@ -414,7 +422,7 @@ Module Module1
             Dim rectangularity As Integer = GetRnd(0, 1 + size \ 2) * 2
             Dim roomSize = New Vec(size, size)
 
-            If (GetRnd(1, 2) = 2) Then
+            If GetRnd(0, 1) Then
                 roomSize.X += rectangularity
             Else
                 roomSize.Y += rectangularity
@@ -429,8 +437,6 @@ Module Module1
                                         newRoomPos.Y + roomSize.Y + 2 >= r.Pos.Y) Then Continue For
             Dim newRoom = New Room(newRoomPos, roomSize)
             roomList.Add(newRoom)
-            'start region
-            currentRegion += 1
             'carving
             For x = 0 To newRoom.Size.X - 1
                 For y = 0 to newRoom.Size.Y - 1
@@ -468,11 +474,7 @@ Module Module1
                 'grow maze
                 Dim cells = New List(Of Vec)
                 Dim lastDir As Integer = -1
-                'start region
-                currentRegion += 1
                 pos.Carve(maze, False)
-                
-                
                 
                 cells.Add(pos)
                 While cells.Count > 0
@@ -480,8 +482,7 @@ Module Module1
                     Dim unmadeCells = New List(Of Integer)
                     For z = 0 To 3
                         Dim cellAdded As Vec = cell.AddDirection(z, 2)
-                        If cellAdded.Y < mazeSize.Y AndAlso cellAdded.Y > -1 AndAlso 
-                           cellAdded.X < mazeSize.X AndAlso cellAdded.X > - 1 AndAlso 
+                        If maze.IsWithinBounds(cellAdded) AndAlso 
                            maze.Cells(cellAdded.X, cellAdded.Y) = 0
                             unmadeCells.Add(z)
                         End If
@@ -516,18 +517,33 @@ Module Module1
         'connect rooms to maze
         
         For Each roomItem In roomList
-            Dim isOnN As Boolean = GetRnd(0, 1)
-            Dim isOnSW As Byte = GetRnd(0, 1)
-            Dim holePos = New Vec()
-            If isOnN
-                holePos.X = GetRnd(0, roomItem.Size.X)
-                holePos.Y = isOnSW*roomItem.Size.Y + (2*isOnSW - 1) 'function so that 0=>-1 and 1=>1
-            Else
-                holePos.Y = GetRnd(0, roomItem.Size.Y)
-                holePos.X = isOnSW*roomItem.Size.X + (2*isOnSW - 1) 'function so that 0=>-1 and 1=>1
+            Dim roomsToAdd As Byte = 1
+            If GetRnd(0, 100) < extraConnectorChance
+                roomsToAdd += 1
             End If
-            holePos += roomItem.Pos
-            holePos.Carve(maze, True)
+            Do
+                Dim isOnNS As Boolean = GetRnd(0, 1)
+                Dim isOnSW As Byte = GetRnd(0, 1)
+                Dim direction As Byte
+                Dim holePos = New Vec()
+                If isOnNS
+                    direction = isOnSW * 2 'function so that 0=>0 and 1=>2
+                    holePos.X = GetRnd(0, roomItem.Size.X - 1)
+                    holePos.Y = isOnSW*roomItem.Size.Y + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
+                Else
+                    direction = 3 - ((isOnSW Mod 2) * 2) 'function so that 0=>3 and 1=>1
+                    holePos.Y = GetRnd(0, roomItem.Size.Y - 1)
+                    holePos.X = isOnSW*roomItem.Size.X + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
+                End If
+                holePos += roomItem.Pos
+                Dim holePosAdded As Vec = holePos.AddDirection(direction)
+                If maze.IsWithinBounds(holePosAdded) AndAlso maze.GetCell(holePosAdded) = 1
+                    holePos.Carve(maze, True)
+                    roomsToAdd -= 1
+                    holePositions.Add(holePos)
+                    roomPositions.Add(roomItem.Pos)
+                End If
+            Loop Until roomsToAdd = 0
         Next
         
         
@@ -553,8 +569,7 @@ Module Module1
                     exits.Clear()
                     For z = 0 To 3
                         Dim addPos = pos.AddDirection(z)
-                        If addPos.Y < mazeSize.Y AndAlso addPos.Y > - 1 AndAlso
-                           addPos.X < mazeSize.X AndAlso addPos.X > - 1 AndAlso maze.Cells(addPos.X, addPos.Y) = 1
+                        If maze.IsWithinBounds(addPos) AndAlso maze.GetCell(addPos) = 1
                             exits.Add(z)
                         End If
                     Next
@@ -577,17 +592,20 @@ Module Module1
     
     <Extension>
     Private Sub Carve(pos As Vec, ByRef maze As Maze, displayChanges As Boolean)
-        If pos.X < maze.Size.X AndAlso pos.X > -1 AndAlso pos.Y < maze.Size.Y AndAlso pos.Y > - 1
+        If maze.IsWithinBounds(pos)
             maze.Cells(pos.X, pos.Y) = 1
             If displayChanges
                 SetCursorPosition((pos.X + 1) * 2, pos.Y + 1)
-                Write(floor)
+                'Write(floor)
+                ForegroundColor = ConsoleColor.Red
+                Write(wall)
+                ForegroundColor = ConsoleColor.White
             End If
         End If
     End Sub
     
     <Extension>
-    Private Function AddDirection(pos As Vec, direction As Integer, Optional amount As Integer = 1) As Vec
+    Private Function AddDirection(pos As Vec, direction As Byte, Optional amount As Integer = 1) As Vec
         Select Case direction
             Case 0
                 Return New Vec(pos.X, pos.Y - amount)
@@ -648,6 +666,13 @@ Module Module1
             ReDim Cells(mazeSize.X - 1, mazeSize.Y - 1)
             Size = mazeSize
         End Sub
+        Public Function IsWithinBounds(pos As Vec) As Boolean
+            Return pos.Y < Size.Y AndAlso pos.Y > - 1 AndAlso
+                   pos.X < Size.X AndAlso pos.X > - 1
+        End Function
+        Public Function GetCell(pos As vec) As Integer
+            Return Cells(pos.X, pos.y)
+        End Function
     End Structure
     
     Private Structure Room
