@@ -14,8 +14,8 @@ Module Module1
     Const initialFontWeight = 400
     Const initialFontSize = 36
     Const initialFontName = "Lucida Sans Typewriter"
-    Dim holePositions As List(Of Vec) = New List(Of Vec)()
-    Dim roomPositions As List(Of Vec) = New List(Of Vec)()
+    'Dim holePositions As List(Of Vec) = New List(Of Vec)()
+    'Dim roomPositions As List(Of Vec) = New List(Of Vec)()
 
     Sub Main()
         Dim mainMenuChoice As Integer
@@ -27,10 +27,12 @@ Module Module1
         Dim extraConnectorChance As Byte
         Dim roomExtraSize As Short
         Dim windingPercent As Byte
+        Dim cutDeadEnds As Boolean
         Dim showMazeGen As Boolean
         
         GenerateFiles()
-        LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent, showMazeGen)
+        LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent,
+                        cutDeadEnds, showMazeGen)
         
         MaximiseConsole()
 '        Dim done = False
@@ -59,22 +61,22 @@ Module Module1
                     ReadLine()
                 Case 1
                     Dim generatedMaze As Maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
-                                                             windingPercent, showMazeGen)
+                                                             windingPercent, cutDeadEnds, showMazeGen)
                     SetCursorPosition(0, 0)
                     DisplayMaze(generatedMaze)
                     ReadLine()
                     Clear()
-                    SetupConsole(initialFontWeight, 14, initialFontName)
-                    For x = 0 To roomPositions.Count
-                        WriteLine(
-                            roomPositions(x).X & ", " & roomPositions(x).Y & " hole: " & holePositions(x).X & ", " &
-                            holePositions(x).Y)
-                    Next
-                    ReadLine()
+'                    SetupConsole(initialFontWeight, 14, initialFontName)
+'                    For x = 0 To roomPositions.Count
+'                        WriteLine(
+'                            roomPositions(x).X & ", " & roomPositions(x).Y & " hole: " & holePositions(x).X & ", " &
+'                            holePositions(x).Y)
+'                    Next
+'                    ReadLine()
                 Case 2
                     GenerationMenu()
                     LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent,
-                                    showMazeGen)
+                                    cutDeadEnds, showMazeGen)
             End Select
         Loop Until mainMenuChoice = 3
     End Sub
@@ -84,7 +86,7 @@ Module Module1
             File.Create(johnson1)
         End If
         If Not File.Exists(johnson2)
-            File.WriteAllLines(johnson2, New String(){"51", "51", "50", "20", "0", "60", "1"})
+            File.WriteAllLines(johnson2, New String(){"51", "51", "50", "20", "0", "60", "1", "0"})
         End If
     End Sub
 
@@ -216,20 +218,22 @@ Module Module1
     End Sub
     
     Private Sub LoadGenSettings(ByRef mazeSize As Vec, ByRef roomTryCount As Short, ByRef extraConnectorChance As Byte,
-                                ByRef roomExtraSize As Short, ByRef windingPercent As Byte, ByRef showMazeGen As Boolean)
+                                ByRef roomExtraSize As Short, ByRef windingPercent As Byte,ByRef cutDeadEnds As Boolean, 
+                                ByRef showMazeGen As Boolean)
         Dim input() As String = File.ReadAllLines(johnson2)
         mazeSize = New Vec(input(0), input(1))
         roomTryCount = input(2)
         extraConnectorChance = input(3)
         roomExtraSize = input(4)
         windingPercent = input(5)
-        showMazeGen = (input(6) + 1) Mod 2
+        cutDeadEnds = input(6)
+        showMazeGen = (input(7) + 1) Mod 2
     End Sub
         
     Private Sub GenerationMenu()
         Dim keypressed As Integer
         Const topPos As Byte = 2
-        Const bottomPos As Byte = 6
+        Const bottomPos As Byte = 7
         Dim position = 0
         Dim input(bottomPos + 1) As String
         For x = 0 To bottomPos
@@ -240,6 +244,7 @@ Module Module1
                                  "Percentage chance for extra room connections (0-100): ",
                                  "Extra room size (0-10 recommended): ",
                                  "Percentage chance for paths to wind (0-100): ",
+                                 "Dead end cutting False(0)-True(1): ",
                                  "Instant generation False(0)-True(1): "}
         
         WriteLine("Generation Settings (think of these like difficulty settings)")
@@ -376,6 +381,10 @@ Module Module1
                 End If
             Case 6
                 If NOT IsNumeric(input) OrElse input < 0 OrElse input > 1
+                    Return "Dead end cutting is not 1 or 0"
+                End If
+            Case 7
+                If NOT IsNumeric(input) OrElse input < 0 OrElse input > 1
                     Return "Instant generation is not 1 or 0"
                 End If
         End Select
@@ -392,7 +401,7 @@ Module Module1
     End Function
     
     Private Function GenerateMaze(mazeSize As Vec, roomTryCount As Short, extraConnectorChance As Byte,
-                                  roomExtraSize As Short, windingPercent As Byte, showMazeGen As Boolean) As Maze
+                                  roomExtraSize As Short, windingPercent As Byte, cutDeadEnds As Boolean, showMazeGen As Boolean) As Maze
         Randomize()
         WriteLine("press enter to see maze generation")
         ReadLine()
@@ -529,25 +538,28 @@ Module Module1
                 If isOnNS
                     direction = isOnSW * 2 'function so that 0=>0 and 1=>2
                     holePos.X = GetRnd(0, roomItem.Size.X - 1)
-                    holePos.Y = isOnSW*roomItem.Size.Y + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
+                    holePos.Y = isOnSW * (roomItem.Size.Y - 1) + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
                 Else
                     direction = 3 - ((isOnSW Mod 2) * 2) 'function so that 0=>3 and 1=>1
                     holePos.Y = GetRnd(0, roomItem.Size.Y - 1)
-                    holePos.X = isOnSW*roomItem.Size.X + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
+                    holePos.X = isOnSW * (roomItem.Size.X - 1) + ((2 * isOnSW) - 1) 'function so that 0=>-1 and 1=>1
                 End If
                 holePos += roomItem.Pos
                 Dim holePosAdded As Vec = holePos.AddDirection(direction)
                 If maze.IsWithinBounds(holePosAdded) AndAlso maze.GetCell(holePosAdded) = 1
                     holePos.Carve(maze, True)
                     roomsToAdd -= 1
-                    holePositions.Add(holePos)
-                    roomPositions.Add(roomItem.Pos)
+                    'holePositions.Add(holePos)
+                    'roomPositions.Add(roomItem.Pos)
+                Else
+                    'WriteLine()
                 End If
             Loop Until roomsToAdd = 0
         Next
         
-        
         If showMazeGen Then ReadLine()
+        
+        If Not cutDeadEnds Then Return maze
         
         'remove dead ends
         
@@ -596,10 +608,10 @@ Module Module1
             maze.Cells(pos.X, pos.Y) = 1
             If displayChanges
                 SetCursorPosition((pos.X + 1) * 2, pos.Y + 1)
-                'Write(floor)
-                ForegroundColor = ConsoleColor.Red
-                Write(wall)
-                ForegroundColor = ConsoleColor.White
+                Write(floor)
+'                ForegroundColor = ConsoleColor.Red
+'                Write(wall)
+'                ForegroundColor = ConsoleColor.White
             End If
         End If
     End Sub
