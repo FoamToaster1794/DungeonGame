@@ -11,6 +11,8 @@ Module Module1
     Const wall = "██"
     Const floor = "  "
     Const wallSize = 2
+    Const player = "><"
+    Const exitTile = "██"
     Const initialFontWeight = 400
     Const initialFontSize = 36
     Const initialFontName = "Lucida Sans Typewriter"
@@ -29,6 +31,13 @@ Module Module1
         Dim windingPercent As Byte
         Dim cutDeadEnds As Boolean
         Dim showMazeGen As Boolean
+        
+        
+'        WriteLine("up arrow: " & ConsoleKey.UpArrow)
+'        WriteLine("right arrow: " & ConsoleKey.RightArrow)
+'        WriteLine("down arrow: " & ConsoleKey.DownArrow)
+'        WriteLine("left arrow: " & ConsoleKey.LeftArrow)
+'        ReadLine()
         
         GenerateFiles()
         LoadGenSettings(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize, windingPercent,
@@ -60,10 +69,10 @@ Module Module1
                     DisplayMaze(currentMaze)
                     ReadLine()
                 Case 1
-                    Dim generatedMaze As Maze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
+                    currentMaze = GenerateMaze(mazeSize, roomTryCount, extraConnectorChance, roomExtraSize,
                                                              windingPercent, cutDeadEnds, showMazeGen)
                     SetCursorPosition(0, 0)
-                    DisplayMaze(generatedMaze)
+                    DisplayMaze(currentMaze)
                     ReadLine()
                     Clear()
 '                    SetupConsole(initialFontWeight, 14, initialFontName)
@@ -168,6 +177,22 @@ Module Module1
         Clear()
         Dim mazeName As String = fileNames(position - 1)
         maze = LoadMazeFromFile(mazeName)
+    End Sub
+    
+    Private Sub PlayGame(maze As Maze)
+        Dim shouldExit As Boolean
+        Do
+            maze.Cells(maze.playerPos.x, maze.playerPos.y) = 2
+            SetCursorPosition((maze.playerPos.X + 1) * 2, maze.playerPos.Y + 1)
+            Write(player)
+            Dim keyPressed As Integer
+            Do
+                keyPressed = ReadKey(True).Key
+            Loop Until (keyPressed > 36 AndAlso keyPressed < 41) OrElse keyPressed = ConsoleKey.Enter
+            Dim shiftedKey As Integer = keyPressed - 37
+            Dim moveDirection As Integer = ((keyPressed - 34 - (shiftedKey / shiftedKey) * 4) + 4) Mod 4
+            
+        Loop Until shouldExit
     End Sub
 
     Private Function LoadMazeFromFile(fileName As String) As Maze
@@ -412,6 +437,9 @@ Module Module1
         Dim maze = New Maze(mazeSize)
         Dim roomList = New List(Of Room)()
         
+        'set exit position
+        maze.exitPos = New Vec(maze.Size.X - 1, maze.Size.Y - 1)
+        
         DisplayMaze(maze)
         If showMazeGen Then ReadLine()
         
@@ -585,7 +613,7 @@ Module Module1
                             exits.Add(z)
                         End If
                     Next
-                    If exits.Count > 1 Then Exit While
+                    If exits.Count > 1 OrElse pos = maze.exitPos OrElse pos = New Vec(0, 0) Then Exit While
                     maze.Cells(pos.X, pos.Y) = 0
                     SetCursorPosition((pos.X + 1) * 2, pos.Y + 1)
                     Write(wall)
@@ -611,7 +639,7 @@ Module Module1
                 Write(floor)
 '                ForegroundColor = ConsoleColor.Red
 '                Write(wall)
-'                ForegroundColor = ConsoleColor.White
+'                ForegroundColor = ConsoleColor.Gray
             End If
         End If
     End Sub
@@ -658,6 +686,12 @@ Module Module1
         line.AppendLine()
         
         WriteLine(line)
+        ForegroundColor = ConsoleColor.Red
+        SetCursorPosition((maze.playerPos.X + 1) * 2, maze.playerPos.Y + 1)
+        Write(player)
+        SetCursorPosition((maze.exitPos.X + 1) * 2, maze.exitPos.Y + 1)
+        Write(exitTile)
+        ForegroundColor = ConsoleColor.Gray
     End Sub
 
     <Extension>
@@ -667,6 +701,8 @@ Module Module1
                 Return wall
             Case 1
                 Return floor
+            Case 2
+                Return player
         End Select
         Return ""
     End Function
@@ -674,9 +710,13 @@ Module Module1
     Private Structure Maze
         Dim Size As Vec
         Dim Cells(,) As Integer '0 is wall 1 is floor
+        Dim playerPos As Vec
+        Dim exitPos As Vec
         Sub New(mazeSize As Vec)
             ReDim Cells(mazeSize.X - 1, mazeSize.Y - 1)
             Size = mazeSize
+            playerPos = New Vec(0, 0)
+            
         End Sub
         Public Function IsWithinBounds(pos As Vec) As Boolean
             Return pos.Y < Size.Y AndAlso pos.Y > - 1 AndAlso
@@ -705,6 +745,14 @@ Module Module1
         End Sub
         Public Shared Operator +(vec1 As Vec, vec2 As Vec)
             Return New Vec(vec1.X + vec2.X, vec1.Y + vec2.Y)
+        End Operator
+        
+        Public Shared Operator =(vec1 As Vec, vec2 As Vec)
+            Return vec1.X = vec2.X AndAlso vec1.Y = vec2.Y
+        End Operator
+        
+        Public Shared Operator <>(vec1 As Vec, vec2 As Vec)
+            Return vec1.X <> vec2.X OrElse vec1.Y <> vec2.Y
         End Operator
         
     End Structure
